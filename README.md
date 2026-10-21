@@ -6,13 +6,12 @@ API REST para la gestion de torneos y eventos deportivos.
 
 Deport es una plataforma pensada para la organizacion de torneos y eventos deportivos (futbol, padel, running, crossfit, entre otros). Permite gestionar las publicaciones de cada evento, fechas de realizacion, sedes, modalidades y el control de cupos para los participantes.
 
-En esta primera etapa se implementa la arquitectura base en capas (rutas, controladores, servicios, repositorios, dao y modelos), dejando configurado el servidor con Express en formato ESM y variables de entorno.
-
 ## Tecnologias
 
 - Node.js
 - Express
 - Mongoose
+- Bcrypt
 - Dotenv
 - Nodemon
 
@@ -45,13 +44,50 @@ src/
 ├── middlewares/
 │   └── errorHandler.middleware.js
 └── utils/
-    └── customResponse.util.js
+    ├── customResponse.util.js
+    └── hash.js
 ```
 
-## Endpoints disponibles
+## Variables de entorno
 
-- `GET /api/health` - Estado del servidor (devuelve `{ "status": "ok", "message": "Servidor activo" }`)
-- `GET /api/events` - Listado inicial de eventos (devuelve `{ "status": "success", "payload": [] }`)
-- `POST /api/sessions/register` - Estructura base para registro
-- `POST /api/sessions/login` - Estructura base para inicio de sesion
-- `GET /api/sessions/current` - Estructura base para sesion actual
+Crear un `.env` en la raiz con los datos de `.env.example`:
+
+```env
+PORT=8080
+NODE_ENV=development
+MONGO_URL=mongodb://localhost:27017/deport_db
+JWT_SECRET=coderSecretTokenKey2026
+```
+
+## Como probar el registro
+
+Endpoint: `POST /api/sessions/register`
+
+Campos obligatorios:
+- `first_name` (string)
+- `last_name` (string)
+- `email` (string, formato valido)
+- `password` (minimo 6 caracteres)
+
+Ejemplo de body json:
+```json
+{
+  "first_name": "Ana",
+  "last_name": "Perez",
+  "email": "ana@mail.com",
+  "password": "Password123"
+}
+```
+
+Respuestas:
+- `201`: Usuario creado correctamente (devuelve datos sin password).
+- `400`: Faltan campos obligatorios o formato de email invalido.
+- `409`: El email ya se encuentra registrado.
+
+## Endpoints
+
+- `GET /api/health` - Estado del servidor
+- `GET /api/events` - Listado de eventos
+- `POST /api/sessions/register` - Registro de usuario
+- `POST /api/sessions/login` - Login (proxima entrega)
+- `GET /api/sessions/current` - Sesion actual

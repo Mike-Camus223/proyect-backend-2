@@ -2,12 +2,18 @@ import sessionsService from '../services/sessions.service.js';
 
 export const register = async (req, res, next) => {
   try {
-    const result = await sessionsService.registerUser(req.body);
-    return res.status(200).json({
+    const user = await sessionsService.registerUser(req.body);
+    return res.status(201).json({
       status: 'success',
-      payload: result
+      payload: user
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message
+      });
+    }
     next(error);
   }
 };
