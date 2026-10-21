@@ -48,46 +48,10 @@ src/
     └── hash.js
 ```
 
-## Variables de entorno
-
-Crear un `.env` en la raiz con los datos de `.env.example`:
-
-```env
-PORT=8080
-NODE_ENV=development
-MONGO_URL=mongodb://localhost:27017/deport_db
-JWT_SECRET=coderSecretTokenKey2026
-```
-
-## Como probar el registro
-
-Endpoint: `POST /api/sessions/register`
-
-Campos obligatorios:
-- `first_name` (string)
-- `last_name` (string)
-- `email` (string, formato valido)
-- `password` (minimo 6 caracteres)
-
-Ejemplo de body json:
-```json
-{
-  "first_name": "Ana",
-  "last_name": "Perez",
-  "email": "ana@mail.com",
-  "password": "Password123"
-}
-```
-
-Respuestas:
-- `201`: Usuario creado correctamente (devuelve datos sin password).
-- `400`: Faltan campos obligatorios o formato de email invalido.
-- `409`: El email ya se encuentra registrado.
-
-## Endpoints
+## Endpoints disponibles
 
 - `GET /api/health` - Estado del servidor
 - `GET /api/events` - Listado de eventos
 - `POST /api/sessions/register` - Registro de usuario
-- `POST /api/sessions/login` - Login (proxima entrega)
+- `POST /api/sessions/login` - Inicio de sesion
 - `GET /api/sessions/current` - Sesion actual
