@@ -11,24 +11,34 @@ const eventSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
-    date: {
-      type: Date,
-      required: true
+    sportType: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    category: {
+      type: String,
+      trim: true,
+      default: 'General'
     },
     location: {
       type: String,
       required: true,
       trim: true
     },
-    capacity: {
+    date: {
+      type: Date,
+      required: true
+    },
+    maxParticipants: {
       type: Number,
       required: true,
       min: 1
     },
-    category: {
-      type: String,
-      trim: true,
-      default: 'General'
+    price: {
+      type: Number,
+      default: 0,
+      min: 0
     },
     organizer: {
       type: mongoose.Schema.Types.ObjectId,

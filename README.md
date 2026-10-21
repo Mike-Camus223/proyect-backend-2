@@ -1,10 +1,12 @@
-# Plataforma de Eventos - API
+# Deport API
 
-Backend para la plataforma de gestion de eventos e inscripciones (Backend II - Coderhouse).
+API REST para la gestion de torneos y eventos deportivos, desarrollada para el curso de Backend II de Coderhouse.
 
-## Descripcion
+## Tematica
 
-API REST organizada por capas para la administracion de eventos y registro de usuarios. En esta primera entrega se deja lista la estructura base del servidor con Express (ESM), conexion configurada mediante variables de entorno y las rutas iniciales.
+Deport es una plataforma pensada para la organizacion de torneos y eventos deportivos (futbol, padel, running, crossfit, entre otros). Permite gestionar las publicaciones de cada evento, fechas de realizacion, sedes, modalidades y el control de cupos para los participantes.
+
+En esta primera etapa se implementa la arquitectura base en capas (rutas, controladores, servicios, repositorios, dao y modelos), dejando configurado el servidor con Express en formato ESM y variables de entorno.
 
 ## Tecnologias
 
@@ -48,36 +50,36 @@ src/
 
 ## Variables de entorno
 
-Crear un archivo `.env` en la raiz con los siguientes valores de ejemplo:
+Crear un archivo `.env` en la raiz tomando como plantilla el archivo `.env.example`:
 
 ```env
 PORT=8080
 NODE_ENV=development
-MONGO_URL=mongodb://localhost:27017/eventos_db
+MONGO_URL=mongodb://localhost:27017/deport_db
 JWT_SECRET=coderSecretTokenKey2026
 ```
 
 ## Instalacion y ejecucion
 
-Instalar las dependencias:
+1. Instalar dependencias:
 ```bash
 npm install
 ```
 
-Ejecutar en desarrollo:
+2. Ejecutar en desarrollo:
 ```bash
 npm run dev
 ```
 
-Ejecutar en produccion:
+3. Ejecutar en produccion:
 ```bash
 npm start
 ```
 
-## Rutas disponibles
+## Endpoints disponibles
 
-- `GET /api/health` - Estado del servidor (devuelve `{ status: "ok", message: "Servidor activo" }`)
-- `GET /api/events` - Listado inicial de eventos (devuelve `{ status: "success", payload: [] }`)
-- `POST /api/sessions/register` - Registro de usuario
-- `POST /api/sessions/login` - Inicio de sesion
-- `GET /api/sessions/current` - Datos de sesion actual
+- `GET /api/health` - Estado del servidor (devuelve `{ "status": "ok", "message": "Servidor activo" }`)
+- `GET /api/events` - Listado inicial de eventos (devuelve `{ "status": "success", "payload": [] }`)
+- `POST /api/sessions/register` - Estructura base para registro
+- `POST /api/sessions/login` - Estructura base para inicio de sesion
+- `GET /api/sessions/current` - Estructura base para sesion actual
