@@ -1,6 +1,6 @@
 # Deport API
 
-API REST para la gestion de torneos y eventos deportivos, desarrollada para el curso de Backend II de Coderhouse.
+API REST para la gestion de torneos y eventos deportivos.
 
 ## Tematica
 
@@ -46,34 +46,6 @@ src/
 │   └── errorHandler.middleware.js
 └── utils/
     └── customResponse.util.js
-```
-
-## Variables de entorno
-
-Crear un archivo `.env` en la raiz tomando como plantilla el archivo `.env.example`:
-
-```env
-PORT=8080
-NODE_ENV=development
-MONGO_URL=mongodb://localhost:27017/deport_db
-JWT_SECRET=coderSecretTokenKey2026
-```
-
-## Instalacion y ejecucion
-
-1. Instalar dependencias:
-```bash
-npm install
-```
-
-2. Ejecutar en desarrollo:
-```bash
-npm run dev
-```
-
-3. Ejecutar en produccion:
-```bash
-npm start
 ```
 
 ## Endpoints disponibles
