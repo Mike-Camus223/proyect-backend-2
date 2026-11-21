@@ -4,11 +4,11 @@ import { config } from './env.config.js';
 let cachedTransporter = null;
 
 /**
- * Crea y devuelve el transporter de Nodemailer usando variables de entorno.
- * Si no hay credenciales SMTP configuradas en el entorno local, utiliza jsonTransport
- * para evitar errores en pruebas locales sin exponer ni hardcodear credenciales.
+ * Devuelve el transporter de Nodemailer usando las credenciales de entorno.
+ * Si MAIL_USER/MAIL_PASS no estan definidos en desarrollo, crea una cuenta temporal
+ * de Ethereal para pruebas reales y cae a jsonTransport si no hay red.
  */
-export const getTransporter = () => {
+export const getTransporter = async () => {
   if (cachedTransporter) {
     return cachedTransporter;
   }
@@ -23,7 +23,21 @@ export const getTransporter = () => {
         pass: config.mail.pass
       }
     });
-  } else {
+    return cachedTransporter;
+  }
+
+  try {
+    const testAccount = await nodemailer.createTestAccount();
+    cachedTransporter = nodemailer.createTransport({
+      host: testAccount.smtp.host,
+      port: testAccount.smtp.port,
+      secure: testAccount.smtp.secure,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass
+      }
+    });
+  } catch {
     cachedTransporter = nodemailer.createTransport({
       jsonTransport: true
     });
@@ -33,4 +47,3 @@ export const getTransporter = () => {
 };
 
 export default getTransporter;
-

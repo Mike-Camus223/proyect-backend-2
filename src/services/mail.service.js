@@ -1,12 +1,13 @@
+import nodemailer from 'nodemailer';
 import { getTransporter } from '../config/mailer.config.js';
 import { config } from '../config/env.config.js';
 
 class MailService {
   /**
-   * Envía un email de confirmación de inscripción a un evento mediante Nodemailer.
+   * Envia un email de confirmacion de inscripcion mediante Nodemailer.
    */
   async sendTicketConfirmation({ to, eventTitle, eventDate, eventLocation, quantity, reservationCode }) {
-    const transporter = getTransporter();
+    const transporter = await getTransporter();
     const formattedDate = new Date(eventDate).toLocaleString('es-AR', {
       dateStyle: 'medium',
       timeStyle: 'short'
@@ -30,10 +31,14 @@ class MailService {
     };
 
     const info = await transporter.sendMail(mailOptions);
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log(`Vista previa del email enviado (${reservationCode}): ${previewUrl}`);
+    }
+
     return info;
   }
 }
 
 export const mailService = new MailService();
 export default mailService;
-
