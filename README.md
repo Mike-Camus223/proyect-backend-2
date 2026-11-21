@@ -1,183 +1,25 @@
 # Deport API
 
-API REST para la gestion de torneos y eventos deportivos.
+Deport es una api que arme para la organizacion de torneos y eventos deportivos, la idea es que sirva para cosas como futbol, padel, running, crossfit y otros deportes parecidos. Desde aca se van a poder gestionar las publicaciones de cada evento, las fechas, las sedes, la modalidad y el control de cupos de los participantes. Por ahora el proyecto tiene la base armada y la parte de usuarios con registro, login y sesion, y lo de eventos se va a ir completando en las proximas entregas.
 
-## Tematica
+El proyecto esta hecho con Node.js y Express, la base de datos es MongoDB y me conecto con Mongoose. Para las contraseñas uso bcrypt, para los tokens uso jsonwebtoken y para leer las cookies uso cookie-parser. Las variables de entorno las manejo con dotenv y en desarrollo uso nodemon para no tener que reiniciar el servidor a cada rato.
 
-Deport es una plataforma pensada para la organizacion de torneos y eventos deportivos (futbol, padel, running, crossfit, entre otros). Permite gestionar las publicaciones de cada evento, fechas de realizacion, sedes, modalidades y el control de cupos para los participantes.
+El codigo esta todo dentro de la carpeta src y lo separe por capas para que no quede todo mezclado. En routes estan las rutas, en controllers los controladores que reciben la peticion y responden, en services esta la logica de negocio, despues repositories y dao que son los que hablan con la base, y en models estan los modelos de User y Event. En config esta la conexion a mongo y la carga de las variables de entorno, en middlewares esta el middleware de autenticacion y el que maneja los errores, y en utils deje las funciones de hash con bcrypt y las de generar y verificar el jwt. El archivo app.js arma express y server.js es el que levanta todo.
 
-## Tecnologias
+El modelo de usuario tiene first_name, last_name, email, password y role. El rol por defecto es user y la contraseña nunca se guarda en texto plano, siempre se guarda hasheada.
 
-- Node.js
-- Express
-- Mongoose
-- Bcrypt
-- Jsonwebtoken
-- Cookie-parser
-- Dotenv
-- Nodemon
+Para correrlo hay que clonar el repo y hacer npm install para bajar las dependencias. Despues hay que crear un archivo .env en la raiz copiando el .env.example que esta en el repo y completarlo con tus datos. Las variables que pide son PORT que es el puerto donde corre el server, MONGO_URL que es la url de conexion a tu base de mongo atlas, JWT_SECRET que es la clave con la que se firman los tokens, JWT_EXPIRES_IN que es cuanto dura el token (yo uso 1h) y NODE_ENV que puede ser development o production. El .env no esta subido al repo por obvias razones. Una vez configurado se levanta con npm run dev para desarrollo o con npm start si lo queres correr normal, y por defecto queda escuchando en el puerto 8080.
 
-## Estructura de carpetas
+Ahora paso a explicar las rutas que tiene la api.
 
-```text
-src/
-├── app.js
-├── server.js
-├── config/
-│   ├── db.js
-│   └── env.config.js
-├── routes/
-│   ├── events.router.js
-│   └── sessions.router.js
-├── controllers/
-│   ├── events.controller.js
-│   └── sessions.controller.js
-├── services/
-│   ├── events.service.js
-│   └── sessions.service.js
-├── repositories/
-│   ├── events.repository.js
-│   └── users.repository.js
-├── dao/
-│   ├── events.dao.js
-│   └── users.dao.js
-├── models/
-│   ├── Event.js
-│   └── User.js
-├── middlewares/
-│   ├── auth.middleware.js
-│   └── errorHandler.middleware.js
-└── utils/
-    ├── customResponse.util.js
-    ├── hash.js
-    └── jwt.js
-```
+La primera es GET /api/health que es solo para chequear que el servidor este vivo, no recibe nada y responde { "status": "ok", "message": "Servidor activo" }. Tambien esta GET /api/events que devuelve el listado de eventos, por ahora viene vacio porque esa parte todavia no esta terminada.
 
-## Instalacion y ejecucion
+Para registrarse se usa POST /api/sessions/register. Hay que mandar en el body el nombre, apellido, email y contraseña, por ejemplo { "first_name": "Ana", "last_name": "Gomez", "email": "ana@mail.com", "password": "Secreta123" }. La ruta revisa que vengan todos los campos, que el email tenga formato valido y que la contraseña tenga minimo 6 caracteres. El email se pasa a minusculas y se le sacan los espacios antes de guardarlo, asi no se repiten usuarios por escribirlo distinto. Si todo esta bien responde con 201 y los datos del usuario pero sin la contraseña, algo asi como { "status": "success", "payload": { "id": "665f2a...", "first_name": "Ana", "last_name": "Gomez", "email": "ana@mail.com", "role": "user" } }. Si el email ya existe responde 409 con { "status": "error", "message": "El email ya está registrado" } y si falta algun campo devuelve 400.
 
-Para levantar el proyecto en local primero hay que clonar el repositorio e instalar las dependencias con npm install. 
+Para loguearse se usa POST /api/sessions/login mandando el email y la contraseña, por ejemplo { "email": "ana@mail.com", "password": "Secreta123" }. Ahi se busca el usuario por email y se compara la contraseña con la que esta hasheada usando bcrypt. Si esta todo bien se genera un jwt que lleva solo el id, el email y el rol del usuario (nada de contraseña) y se guarda en una cookie que se llama currentUser. La cookie es httpOnly asi no se puede leer desde javascript en el navegador, tiene sameSite lax, dura una hora y en produccion se marca como secure. La respuesta en ese caso es 200 con { "status": "success", "message": "Login correcto" }. Si el email no existe o la contraseña esta mal responde siempre lo mismo, un 401 con { "status": "error", "message": "Credenciales inválidas" }, a proposito no se dice cual de las dos cosas fallo.
 
-El proyecto necesita variables de entorno para funcionar. En la raiz se encuentra el archivo .env.example que sirve de guia para crear el archivo .env con el puerto, el entorno, la url de conexion a mongo, la clave secreta del token y su tiempo de vida.
+Para ver quien esta logueado esta GET /api/sessions/current. Esta ruta esta protegida con el middleware de auth, que lo que hace es leer la cookie currentUser, verificar el token y si es valido guarda los datos en req.user. Si mandas la peticion con la cookie te devuelve 200 con { "status": "success", "payload": { "id": "665f2a...", "email": "ana@mail.com", "role": "user" } }. Si no hay cookie, o el token esta vencido o lo modificaron, responde 401 con { "status": "error", "message": "No autenticado" }.
 
-Para iniciar el servidor en modo desarrollo usamos npm run dev, o npm start si queremos ejecutarlo con node de forma directa.
+Y por ultimo para cerrar sesion esta POST /api/sessions/logout, que no necesita body, borra la cookie currentUser y responde 200 con { "status": "success", "message": "Sesión cerrada" }. Despues de esto si volves a pegarle a current te va a dar 401 porque ya no tenes la cookie.
 
-## Endpoints del sistema
-
-A continuacion se detallan las rutas disponibles en la api, incluyendo el metodo, la descripcion y ejemplos de peticion y respuesta de cada una.
-
-| Metodo | Ruta | Descripcion |
-| :--- | :--- | :--- |
-| GET | /api/health | Chequeo rapido para verificar que el servidor responde |
-| GET | /api/events | Devuelve la lista de eventos deportivos cargados |
-| POST | /api/sessions/register | Registra un usuario nuevo en la base de datos |
-| POST | /api/sessions/login | Inicia sesion y devuelve una cookie con el jwt |
-| GET | /api/sessions/current | Consulta los datos del usuario logueado usando la cookie |
-| POST | /api/sessions/logout | Cierra la sesion y borra la cookie del navegador |
-
-### Registro de usuario
-
-Permite crear una cuenta en el sistema. Valida que esten todos los campos obligatorios, que el email tenga un formato valido y que la contrasena tenga al menos seis caracteres. Guarda la contrasena hasheada con bcrypt y asigna rol user por defecto.
-
-POST /api/sessions/register
-
-Request:
-```json
-{
-  "first_name": "Ana",
-  "last_name": "Gomez",
-  "email": "ana@mail.com",
-  "password": "Secreta123"
-}
-```
-
-Response 201:
-```json
-{
-  "status": "success",
-  "payload": {
-    "id": "665f2a99c5e3170a1a8c9999",
-    "first_name": "Ana",
-    "last_name": "Gomez",
-    "email": "ana@mail.com",
-    "role": "user"
-  }
-}
-```
-
-Si el correo ya fue registrado anteriormente el endpoint responde con status 409:
-```json
-{
-  "status": "error",
-  "message": "El email ya está registrado"
-}
-```
-
-### Inicio de sesion
-
-Busca al usuario por email y verifica la contrasena ingresada contra el hash guardado. Si los datos son correctos genera un token jwt con el id, email y rol, y lo envia dentro de una cookie httpOnly llamada currentUser para mayor seguridad. Si el usuario no existe o la clave esta mal, devuelve un mensaje generico de credenciales invalidas.
-
-POST /api/sessions/login
-
-Request:
-```json
-{
-  "email": "ana@mail.com",
-  "password": "Secreta123"
-}
-```
-
-Response 200 (ademas setea la cookie currentUser HttpOnly):
-```json
-{
-  "status": "success",
-  "message": "Login correcto"
-}
-```
-
-Response 401 (credenciales incorrectas — mensaje generico):
-```json
-{
-  "status": "error",
-  "message": "Credenciales inválidas"
-}
-```
-
-### Usuario actual
-
-Ruta protegida por el middleware de autenticacion. Revisa la cookie currentUser que envia el cliente, comprueba que el jwt sea valido y devuelve los datos basicos del usuario logueado sin mostrar contrasenas ni datos sensibles.
-
-GET /api/sessions/current (con la cookie)
-
-Response 200:
-```json
-{
-  "status": "success",
-  "payload": {
-    "id": "665f2a99c5e3170a1a8c9999",
-    "email": "ana@mail.com",
-    "role": "user"
-  }
-}
-```
-
-Response 401 (sin cookie o token invalido/expirado):
-```json
-{
-  "status": "error",
-  "message": "No autenticado"
-}
-```
-
-### Cierre de sesion
-
-Limpia la cookie currentUser del navegador para terminar la sesion del usuario de forma segura.
-
-POST /api/sessions/logout
-
-Response 200 (borra la cookie):
-```json
-{
-  "status": "success",
-  "message": "Sesión cerrada"
-}
-```
+Lo probe con Postman haciendo el recorrido completo de registrarme, loguearme, entrar a current, hacer logout y volver a current para ver que me tire 401. Tambien probe loguearme con un mail que no existe, con la contraseña mal, entrar a current sin cookie y con un token cambiado a mano, y en todos los casos respondio lo que tenia que responder.
