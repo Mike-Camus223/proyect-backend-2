@@ -1,113 +1,86 @@
-# Plataforma de Eventos Deportivos - Backend
+# Deport API
 
-Proyecto backend desarrollado con Node.js, Express y MongoDB (Mongoose) para la gestión de usuarios, autenticación y eventos deportivos.
+API REST para la gestion de torneos y eventos deportivos.
 
-Esta entrega corresponde a la **Pre-entrega 3: Autenticación con JWT y cookies**, donde se implementa el sistema de registro, login con contraseñas hasheadas mediante bcrypt, generación de token JWT almacenado en una cookie HttpOnly, ruta protegida para consultar el usuario actual (/current) y cierre de sesión (logout).
+## Tematica
 
----
+Deport es una plataforma pensada para la organizacion de torneos y eventos deportivos (futbol, padel, running, crossfit, entre otros). Permite gestionar las publicaciones de cada evento, fechas de realizacion, sedes, modalidades y el control de cupos para los participantes.
 
-## Estructura del proyecto
+## Tecnologias
 
-El proyecto organiza sus archivos separando responsabilidades en capas (rutas, controladores, servicios, repositorios, dao, modelos, middlewares y utilidades):
+- Node.js
+- Express
+- Mongoose
+- Bcrypt
+- Jsonwebtoken
+- Cookie-parser
+- Dotenv
+- Nodemon
+
+## Estructura de carpetas
 
 ```text
-proyecto-eventos/
-├── src/
-│   ├── app.js                         # Configuración de Express y middlewares
-│   ├── server.js                      # Inicialización del servidor
-│   ├── config/
-│   │   ├── db.js                      # Conexión a MongoDB con Mongoose
-│   │   └── env.config.js              # Variables de entorno
-│   ├── controllers/
-│   │   ├── events.controller.js       # Controlador de eventos
-│   │   └── sessions.controller.js     # Controlador de autenticación
-│   ├── services/
-│   │   ├── events.service.js          # Lógica de eventos
-│   │   └── sessions.service.js        # Lógica de negocio de usuarios
-│   ├── repositories/
-│   │   ├── events.repository.js       # Repositorio de eventos
-│   │   └── users.repository.js        # Repositorio de usuarios
-│   ├── dao/
-│   │   ├── events.dao.js              # Acceso a datos de eventos
-│   │   └── users.dao.js               # Acceso a datos de usuarios
-│   ├── models/
-│   │   ├── Event.js                   # Modelo de Evento
-│   │   └── User.js                    # Modelo de Usuario (first_name, last_name, email, password, role)
-│   ├── middlewares/
-│   │   ├── auth.middleware.js         # Middleware para validar cookie currentUser
-│   │   └── errorHandler.middleware.js # Manejo de errores
-│   └── utils/
-│       ├── customResponse.util.js     # Respuestas formateadas
-│       ├── hash.js                    # Funciones para bcrypt (createHash, isValidPassword)
-│       └── jwt.js                     # Generar y verificar JWT (generateToken, verifyToken)
-├── .env.example
-├── .gitignore
-├── package.json
-└── README.md
+src/
+├── app.js
+├── server.js
+├── config/
+│   ├── db.js
+│   └── env.config.js
+├── routes/
+│   ├── events.router.js
+│   └── sessions.router.js
+├── controllers/
+│   ├── events.controller.js
+│   └── sessions.controller.js
+├── services/
+│   ├── events.service.js
+│   └── sessions.service.js
+├── repositories/
+│   ├── events.repository.js
+│   └── users.repository.js
+├── dao/
+│   ├── events.dao.js
+│   └── users.dao.js
+├── models/
+│   ├── Event.js
+│   └── User.js
+├── middlewares/
+│   ├── auth.middleware.js
+│   └── errorHandler.middleware.js
+└── utils/
+    ├── customResponse.util.js
+    ├── hash.js
+    └── jwt.js
 ```
 
----
+## Instalacion y ejecucion
 
-## Variables de entorno
+Para levantar el proyecto en local primero hay que clonar el repositorio e instalar las dependencias con npm install. 
 
-El proyecto utiliza dotenv para gestionar variables de entorno. Para ejecutarlo en local, se debe crear un archivo `.env` en la raíz tomando los campos de `.env.example`:
+El proyecto necesita variables de entorno para funcionar. En la raiz se encuentra el archivo .env.example que sirve de guia para crear el archivo .env con el puerto, el entorno, la url de conexion a mongo, la clave secreta del token y su tiempo de vida.
 
-```env
-PORT=8080
-NODE_ENV=development
-MONGO_URL=mongodb+srv://<usuario>:<password>@cluster0.mongodb.net/eventos_db?retryWrites=true&w=majority
-JWT_SECRET=coderSecretTokenKey2026
-JWT_EXPIRES_IN=1h
-```
+Para iniciar el servidor en modo desarrollo usamos npm run dev, o npm start si queremos ejecutarlo con node de forma directa.
 
-Detalle de variables:
-- `PORT`: Puerto en el que escucha el servidor (por defecto 8080).
-- `NODE_ENV`: Entorno de ejecución (`development` o `production`). En producción la cookie currentUser se configura con `secure: true`.
-- `MONGO_URL`: String de conexión de MongoDB local o MongoDB Atlas.
-- `JWT_SECRET`: Clave secreta para firmar y validar tokens JWT.
-- `JWT_EXPIRES_IN`: Tiempo de expiración del token (por ejemplo `1h`).
+## Endpoints del sistema
 
----
+A continuacion se detallan las rutas disponibles en la api, incluyendo el metodo, la descripcion y ejemplos de peticion y respuesta de cada una.
 
-## Instalación y ejecución
+| Metodo | Ruta | Descripcion |
+| :--- | :--- | :--- |
+| GET | /api/health | Chequeo rapido para verificar que el servidor responde |
+| GET | /api/events | Devuelve la lista de eventos deportivos cargados |
+| POST | /api/sessions/register | Registra un usuario nuevo en la base de datos |
+| POST | /api/sessions/login | Inicia sesion y devuelve una cookie con el jwt |
+| GET | /api/sessions/current | Consulta los datos del usuario logueado usando la cookie |
+| POST | /api/sessions/logout | Cierra la sesion y borra la cookie del navegador |
 
-1. Instalar las dependencias del proyecto:
-```bash
-npm install
-```
+### Registro de usuario
 
-2. Iniciar el servidor en modo desarrollo:
-```bash
-npm run dev
-```
+Permite crear una cuenta en el sistema. Valida que esten todos los campos obligatorios, que el email tenga un formato valido y que la contrasena tenga al menos seis caracteres. Guarda la contrasena hasheada con bcrypt y asigna rol user por defecto.
 
-3. Iniciar el servidor en modo producción:
-```bash
-npm start
-```
+POST /api/sessions/register
 
----
-
-## Tabla de rutas y endpoints
-
-| Método | Ruta | Descripción | Acceso |
-| :--- | :--- | :--- | :--- |
-| GET | `/api/health` | Comprobación de estado del servidor | Público |
-| GET | `/api/events` | Obtiene el listado de eventos | Público |
-| POST | `/api/sessions/register` | Registro de nuevo usuario en la base de datos | Público |
-| POST | `/api/sessions/login` | Inicia sesión y genera cookie HttpOnly `currentUser` | Público |
-| GET | `/api/sessions/current` | Devuelve los datos del usuario autenticado | Protegido (requiere cookie) |
-| POST | `/api/sessions/logout` | Cierra la sesión y elimina la cookie `currentUser` | Público / Autenticado |
-
----
-
-## Ejemplos de Request y Response
-
-### 1. POST /api/sessions/register
-
-Registra un nuevo usuario. Valida presencia de campos, formato de email, hashea la contraseña con bcrypt, comprueba duplicados y asigna el rol `user` por defecto. La respuesta no incluye la contraseña.
-
-Request Body:
+Request:
 ```json
 {
   "first_name": "Ana",
@@ -131,7 +104,7 @@ Response 201:
 }
 ```
 
-Response 409 (si el email ya existe):
+Si el correo ya fue registrado anteriormente el endpoint responde con status 409:
 ```json
 {
   "status": "error",
@@ -139,13 +112,13 @@ Response 409 (si el email ya existe):
 }
 ```
 
----
+### Inicio de sesion
 
-### 2. POST /api/sessions/login
+Busca al usuario por email y verifica la contrasena ingresada contra el hash guardado. Si los datos son correctos genera un token jwt con el id, email y rol, y lo envia dentro de una cookie httpOnly llamada currentUser para mayor seguridad. Si el usuario no existe o la clave esta mal, devuelve un mensaje generico de credenciales invalidas.
 
-Valida email y contraseña contra la base de datos comparando con bcrypt. Si coinciden, genera un JWT con `{ id, email, role }` y lo guarda en la cookie `currentUser` (HttpOnly, SameSite: Lax, MaxAge: 1 hora). Si no coinciden, devuelve un mensaje genérico para mayor seguridad.
+POST /api/sessions/login
 
-Request Body:
+Request:
 ```json
 {
   "email": "ana@mail.com",
@@ -153,7 +126,7 @@ Request Body:
 }
 ```
 
-Response 200 (además setea la cookie currentUser HttpOnly):
+Response 200 (ademas setea la cookie currentUser HttpOnly):
 ```json
 {
   "status": "success",
@@ -161,7 +134,7 @@ Response 200 (además setea la cookie currentUser HttpOnly):
 }
 ```
 
-Response 401 (credenciales incorrectas — mensaje genérico):
+Response 401 (credenciales incorrectas — mensaje generico):
 ```json
 {
   "status": "error",
@@ -169,16 +142,13 @@ Response 401 (credenciales incorrectas — mensaje genérico):
 }
 ```
 
----
+### Usuario actual
 
-### 3. GET /api/sessions/current
+Ruta protegida por el middleware de autenticacion. Revisa la cookie currentUser que envia el cliente, comprueba que el jwt sea valido y devuelve los datos basicos del usuario logueado sin mostrar contrasenas ni datos sensibles.
 
-Ruta protegida que utiliza el middleware `auth`. Lee la cookie `currentUser`, verifica el token JWT y devuelve los datos básicos del usuario autenticado (`id`, `email`, `role`) sin incluir la contraseña.
+GET /api/sessions/current (con la cookie)
 
-Request:
-Requiere que la petición incluya la cookie `currentUser` generada en el login.
-
-Response 200 (con la cookie):
+Response 200:
 ```json
 {
   "status": "success",
@@ -190,7 +160,7 @@ Response 200 (con la cookie):
 }
 ```
 
-Response 401 (sin cookie o token inválido/expirado):
+Response 401 (sin cookie o token invalido/expirado):
 ```json
 {
   "status": "error",
@@ -198,14 +168,11 @@ Response 401 (sin cookie o token inválido/expirado):
 }
 ```
 
----
+### Cierre de sesion
 
-### 4. POST /api/sessions/logout
+Limpia la cookie currentUser del navegador para terminar la sesion del usuario de forma segura.
 
-Elimina la cookie `currentUser` del cliente y confirma el cierre de la sesión.
-
-Request:
-No requiere body.
+POST /api/sessions/logout
 
 Response 200 (borra la cookie):
 ```json
@@ -214,31 +181,3 @@ Response 200 (borra la cookie):
   "message": "Sesión cerrada"
 }
 ```
-
----
-
-### 5. GET /api/health
-
-Verifica que el servidor esté activo.
-
-Response 200:
-```json
-{
-  "status": "ok",
-  "message": "Servidor activo"
-}
-```
-
----
-
-## Casos probados
-
-- Registro con datos válidos devuelve 201 y oculta el password.
-- Intento de registro con email duplicado devuelve 409.
-- Login con email inexistente devuelve 401 con mensaje genérico.
-- Login con contraseña incorrecta devuelve 401 con mensaje genérico.
-- Login exitoso devuelve 200 y setea la cookie HttpOnly `currentUser`.
-- Consulta a /current sin cookie devuelve 401 "No autenticado".
-- Consulta a /current con cookie adulterada o expirada devuelve 401 "No autenticado".
-- Consulta a /current con cookie válida devuelve 200 con `{ id, email, role }`.
-- Logout borra la cookie en el cliente y un llamado posterior a /current devuelve 401.
