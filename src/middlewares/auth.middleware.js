@@ -1,31 +1,43 @@
-import { verifyToken } from '../utils/jwt.js';
+import passport from 'passport';
 
 /**
- * Middleware de autenticación mediante JWT almacenado en cookies.
- * Lee la cookie 'currentUser', verifica el token y adjunta el payload a req.user.
+ * Callback reutilizable para manejar las respuestas de Passport sin sesiones
+ * manteniendo el formato JSON estandarizado de la API.
+ */
+export const passportCallback = (req, res, next, defaultStatus, defaultMessage, forceDefaultMessage = false) => {
+  return (err, user, info) => {
+    if (err) {
+      return next(err);
+    }
+
+    if (!user) {
+      const status = info?.statusCode || defaultStatus;
+      const message =
+        forceDefaultMessage || !info?.message || info.message === 'Missing credentials'
+          ? defaultMessage
+          : info.message;
+
+      return res.status(status).json({
+        status: 'error',
+        message
+      });
+    }
+
+    req.user = user;
+    next();
+  };
+};
+
+/**
+ * Middleware de autenticación que delega la validación en la estrategia 'current' de Passport.
  */
 export const auth = (req, res, next) => {
-  const token = req.cookies?.currentUser || req.headers.authorization?.replace('Bearer ', '');
-
-  if (!token) {
-    return res.status(401).json({
-      status: 'error',
-      message: 'No autenticado'
-    });
-  }
-
-  try {
-    const decoded = verifyToken(token);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({
-      status: 'error',
-      message: 'No autenticado'
-    });
-  }
+  return passport.authenticate(
+    'current',
+    { session: false },
+    passportCallback(req, res, next, 401, 'No autenticado', true)
+  )(req, res, next);
 };
 
 export const authMiddleware = auth;
 export default auth;
-

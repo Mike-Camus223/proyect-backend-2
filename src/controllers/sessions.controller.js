@@ -1,27 +1,25 @@
-import sessionsService from '../services/sessions.service.js';
 import { config } from '../config/env.config.js';
+import { generateToken } from '../utils/jwt.js';
 
 export const register = async (req, res, next) => {
   try {
-    const user = await sessionsService.registerUser(req.body);
     return res.status(201).json({
       status: 'success',
-      payload: user
+      payload: req.user
     });
   } catch (error) {
-    if (error.statusCode) {
-      return res.status(error.statusCode).json({
-        status: 'error',
-        message: error.message
-      });
-    }
     next(error);
   }
 };
 
 export const login = async (req, res, next) => {
   try {
-    const { token } = await sessionsService.loginUser(req.body);
+    // El controller genera el JWT y setea la cookie luego de que Passport valida las credenciales
+    const token = generateToken({
+      id: req.user.id,
+      email: req.user.email,
+      role: req.user.role
+    });
 
     res.cookie('currentUser', token, {
       httpOnly: true,
@@ -35,12 +33,6 @@ export const login = async (req, res, next) => {
       message: 'Login correcto'
     });
   } catch (error) {
-    if (error.statusCode) {
-      return res.status(error.statusCode).json({
-        status: 'error',
-        message: error.message
-      });
-    }
     next(error);
   }
 };
