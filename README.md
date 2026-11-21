@@ -1,67 +1,93 @@
-Deport API
+DEPORT API
 
-Deport es una api que hice para organizar torneos y eventos deportivos. La idea es que sirva para futbol, padel, running, crossfit y otros deportes parecidos. Desde ahi se pueden publicar eventos, poner fechas y sedes, y controlar los cupos de la gente que se anota. Tambien tiene usuarios con registro, login y sesion, roles con permisos distintos, inscripciones con tickets y un mail de confirmacion cuando alguien se anota.
+Deport es una API que desarrollé para organizar torneos y eventos deportivos. Está pensada para deportes como fútbol, pádel, running, crossfit y otros similares. Permite publicar eventos, definir fechas y sedes, y controlar los cupos de los participantes. Además incluye registro, login y sesión de usuarios, roles con distintos permisos, inscripciones mediante tickets y el envío de un mail de confirmación cuando alguien se anota.
 
-Con que esta hecho
+TECNOLOGÍAS UTILIZADAS
 
-Use Node.js con Express y MongoDB conectado con Mongoose. Para las contraseñas uso bcrypt, para los tokens jsonwebtoken, para leer cookies cookie-parser y para la autenticacion Passport.js (passport, passport-local y passport-jwt). Los mails se mandan con Nodemailer, las variables de entorno las manejo con dotenv y en desarollo uso nodemon para no tener que reiniciar el servidor a cada rato.
+El proyecto está hecho con Node.js y Express, y la base de datos es MongoDB, conectada mediante Mongoose. Para proteger las contraseñas utilicé bcrypt, para los tokens jsonwebtoken y para leer las cookies cookie-parser. La autenticación se maneja con Passport.js, a través de passport, passport-local y passport-jwt. Los correos se envían con Nodemailer, las variables de entorno se cargan con dotenv y en desarrollo uso nodemon para que el servidor se reinicie solo.
 
-Como esta organizado el codigo
+ESTRUCTURA DEL PROYECTO
 
-Todo esta dentro de la carpeta src y lo separe por capas para que no quede mezclado. En routes estan las rutas, en controllers los controladores, que solo leen la peticion, llaman al servicio y responden. En services esta la logica de negocio (cupos, estados, duplicados, permisos y envio de mails). En repositories estan los metodos pensados para el dominio, como buscar un usuario por email o contar tickets activos, y estos hablan con los dao, que son los unicos que tocan los modelos de Mongoose (UserDAO, EventDAO y TicketDAO). En models estan User, Event y Ticket, y en dto estan UserDTO, EventDTO y TicketDTO, que filtran lo que se devuelve para que nunca salgan contraseñas ni datos de mas. En config esta la conexion a mongo, la carga del .env y el archivo passport.config.js con todas las estrategias. En middlewares estan el de autenticacion, el de autorizacion por roles y el que maneja los errores, y en utils estan las funciones de hash y de generar y verificar el jwt. El archivo app.js arma express y server.js es el que levanta todo.
+Todo el código está dentro de la carpeta src y fue separado en capas para mantenerlo ordenado. En routes se definen las rutas y en controllers están los controladores, que se limitan a recibir la petición, llamar al servicio y devolver la respuesta. En services se concentra la lógica de negocio, es decir, la validación de cupos, estados, duplicados y permisos, además del envío de correos.
 
-Como correrlo
+El acceso a datos está dividido en dos partes. En dao se encuentran UserDAO, EventDAO y TicketDAO, que son los únicos archivos que trabajan directamente con los modelos de Mongoose. En repositories se encuentran los repositorios, que hablan con los DAO y ofrecen métodos pensados para el dominio, como buscar un usuario por email o contar los tickets activos de un evento. En models están los modelos User, Event y Ticket, y en dto están UserDTO, EventDTO y TicketDTO, que filtran lo que se devuelve para que nunca se expongan contraseñas ni datos innecesarios.
 
-Hay que clonar el repo y hacer npm install. Despues se crea un archivo .env en la raiz copiando el .env.example y completandolo con tus datos. Las variables son PORT (el puerto del server), MONGO_URL (la url de tu base en mongo atlas), JWT_SECRET (la clave para firmar los tokens), JWT_EXPIRES_IN (cuanto dura el token, yo uso 1h), NODE_ENV (development o production) y las del correo, que son MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS y MAIL_FROM. El .env no esta subido al repo, ni tampoco node_modules ni ninguna credencial. Para levantarlo se usa npm run dev en desarrollo o npm start normal, y por defecto escucha en el puerto 8080.
+En config se encuentra la conexión a MongoDB, la carga del archivo .env y el archivo passport.config.js, donde están todas las estrategias de autenticación. En middlewares están el de autenticación, el de autorización por roles y el que maneja los errores, y en utils están las funciones para hashear contraseñas y para generar y verificar el token. Por último, app.js configura Express y server.js levanta el servidor.
 
-Usuarios y sesion
+INSTALACIÓN Y EJECUCIÓN
 
-El usuario tiene first_name, last_name, email, password y role. Los roles son user, organizer y admin, y el rol por defecto es user. La contraseña nunca se guarda en texto plano, siempre hasheada.
+Para correr el proyecto hay que clonar el repositorio e instalar las dependencias con npm install. Luego se crea un archivo .env en la raíz a partir del archivo .env.example y se completa con los datos propios.
 
-Para registrarse se usa POST /api/sessions/register mandando first_name, last_name, email y password, por ejemplo Pepito Perez con el mail pepito@mail.com y la clave Secreta123. Se revisa que vengan todos los campos, que el email tenga formato valido y que la contraseña tenga minimo 6 caracteres. El email se pasa a minusculas y se le sacan los espacios para que no se repitan usuarios por escribirlo distinto. Si sale bien responde 201 con los datos del usuario sin la contraseña, si el email ya existe responde 409 con "El email ya está registrado" y si falta algo o el formato esta mal responde 400. El registro publico siempre crea cuentas con rol user, no se puede cambiar desde el body.
+Las variables que se necesitan son PORT, que indica el puerto en el que corre el servidor, MONGO_URL, que es la dirección de conexión a MongoDB Atlas, JWT_SECRET, que es la clave con la que se firman los tokens, JWT_EXPIRES_IN, que define cuánto dura el token (se usa 1h), y NODE_ENV, que puede ser development o production. Para el envío de correos también se usan MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS y MAIL_FROM. El archivo .env no se sube al repositorio, ni tampoco node_modules ni ninguna credencial privada.
 
-Para loguearse se usa POST /api/sessions/login con email y password. Se busca el usuario y se compara la contraseña con la hasheada usando bcrypt. Si esta bien, se genera un jwt que lleva solo el id, el email y el rol, y se guarda en una cookie llamada currentUser. La cookie es httpOnly para que no se pueda leer desde javascript, tiene sameSite lax, dura una hora y en produccion es secure. Responde 200 con "Login correcto". Si el email no existe o la contraseña esta mal responde siempre 401 con "Credenciales inválidas", y a proposito no se aclara cual de las dos fallo.
+Una vez configurado, el servidor se inicia con npm run dev en modo desarrollo o con npm start en modo normal. Por defecto escucha en el puerto 8080.
 
-Para ver quien esta logueado esta GET /api/sessions/current, que esta protegida. Lee la cookie, verifica el token y si es valido devuelve 200 con el id, el email y el rol. Si no hay cookie, o el token esta vencido o lo modificaron, responde 401 con "No autenticado".
+USUARIOS Y SESIÓN
 
-Para cerrar sesion esta POST /api/sessions/logout, que no necesita body, borra la cookie y responde 200 con "Sesión cerrada". Despues de eso, si le pegas a current, te da 401.
+El modelo de usuario tiene first_name, last_name, email, password y role. Los roles posibles son user, organizer y admin, y el rol por defecto es user. La contraseña nunca se guarda en texto plano, sino siempre hasheada.
 
-Todo esto pasa por Passport. Hay tres estrategias: register y login (las dos con LocalStrategy) y current (con passport-jwt y un extractor propio que lee la cookie). El controlador de login es el que genera el token y la cookie cuando Passport ya valido al usuario. Deje el archivo preparado para que mas adelante se puedan sumar providers externos como Google o GitHub sin tocar app.js.
+Registro
 
-Roles y permisos
+El registro se realiza en POST /api/sessions/register, enviando nombre, apellido, email y contraseña. La ruta verifica que lleguen todos los campos, que el email tenga un formato válido y que la contraseña tenga al menos 6 caracteres. Antes de guardar, el email se pasa a minúsculas y se eliminan los espacios, para evitar usuarios duplicados por escribirlo de forma distinta. Si todo es correcto, responde con código 201 y los datos del usuario sin la contraseña. Si el email ya está registrado responde 409, y si falta algún campo o el formato es incorrecto responde 400. El registro público siempre crea cuentas con rol user, y ese rol no se puede modificar desde el cuerpo de la petición.
 
-Hay dos middlewares. El de auth valida la cookie y si no hay sesion valida responde 401. El de authorize recibe los roles permitidos para cada ruta y los compara con el rol del usuario, y si no coincide responde 403 con "No tenés permisos para realizar esta acción". La diferencia es simple: el 401 es que no iniciaste sesion o tu token vencio o es falso, y el 403 es que si iniciaste sesion pero tu rol no alcanza o estas queriendo tocar algo de otra persona.
+Login
 
-Cualquiera puede ver los eventos en GET /api/events y GET /api/events/:id. Para crear eventos hay que estar logueado y ser organizer o admin, asi que un user comun recibe 403. Para modificar o cancelar un evento tambien hace falta ser organizer o admin, pero ademas se valida de quien es el evento: un organizer solo puede tocar los que creo el, y un admin puede tocar cualquiera. Las rutas de usuarios (GET /api/users, que lista sin mostrar contraseñas, GET /api/users/:id y PATCH /api/users/:id/role) son solo para admin, y si entra un user o un organizer reciben 403.
+El inicio de sesión se realiza en POST /api/sessions/login, enviando email y contraseña. Se busca al usuario por su email y se compara la contraseña con la versión hasheada mediante bcrypt. Si los datos son correctos, se genera un token que contiene únicamente el id, el email y el rol del usuario, y se guarda en una cookie llamada currentUser. Esta cookie es httpOnly, por lo que no puede leerse desde JavaScript en el navegador, tiene sameSite lax, dura una hora y en producción se marca como secure. La respuesta es un 200. Si el email no existe o la contraseña es incorrecta, siempre se responde un 401 con el mismo mensaje de credenciales inválidas, y a propósito no se aclara cuál de las dos cosas falló.
 
-Eventos
+Sesión actual
 
-El evento tiene title, description, category, date, location, capacity (mayor a 0), price (0 o mas), status y organizer. El status solo puede ser draft, published, cancelled o finished. El organizer es una referencia al usuario que lo creo y se toma de la sesion, no se acepta desde el body.
+Para saber quién está logueado existe GET /api/sessions/current, una ruta protegida. Lee la cookie, verifica el token y, si es válido, devuelve un 200 con el id, el email y el rol del usuario. Si no hay cookie, o el token está vencido o fue modificado, responde 401.
 
-Las reglas de negocio estan en events.service.js. Al crear o editar no se permite una fecha pasada, la capacidad tiene que ser mayor a cero y el precio no puede ser negativo. Los eventos nunca se borran de la base, cancelar es cambiar el estado a cancelled, ya sea con PATCH /api/events/:id/status o con DELETE /api/events/:id, que hace la misma baja logica. Una vez que un evento esta cancelled o finished ya no se puede modificar ni volver a publicar.
+Logout
 
-Las rutas son POST /api/events para crear (organizer o admin), GET /api/events para listar (publica), GET /api/events/:id para ver el detalle (publica, da 404 si no existe), PUT /api/events/:id para modificar y PATCH /api/events/:id/status para cambiar el estado (estas dos solo para el dueño o un admin). Para crear un evento se manda por ejemplo el titulo "Torneo Regional de Crossfit", una descripcion, la categoria crossfit, la ubicacion "Polideportivo Sur", la fecha 2026-12-20T15:00:00.000Z, capacity 40 y price 3500. Si el id del evento tiene formato invalido responde 400.
+El cierre de sesión se hace en POST /api/sessions/logout. No necesita cuerpo, elimina la cookie y responde 200. Después de esto, una consulta a la sesión actual devuelve 401.
 
-El listado de GET /api/events acepta filtros, paginacion y orden por query params. Se puede filtrar por status, category, location y por rango de fechas con dateFrom y dateTo, elegir pagina y tamaño con page y limit, y ordenar con sort (por ejemplo sort=date o sort=-price). Un ejemplo seria GET /api/events?status=published&category=crossfit&page=1&limit=5&sort=date, y la respuesta viene con status, data, page, limit, total y totalPages.
+Passport
 
-Tickets e inscripciones
+Toda la autenticación pasa por Passport.js, sin cambiar las rutas ni lo que devuelve la API. Las estrategias están centralizadas en src/config/passport.config.js y son tres. La estrategia register usa LocalStrategy: toma los datos del cuerpo, valida los campos obligatorios, normaliza el email, comprueba que no esté repetido, hashea la contraseña y guarda al usuario con rol user. La estrategia login también usa LocalStrategy y solo busca al usuario y compara la contraseña, y el controlador de login es el que genera el token y la cookie una vez que Passport validó al usuario. La estrategia current usa passport-jwt con un extractor propio que lee la cookie currentUser y deja el id, el email y el rol en req.user. El archivo quedó preparado para sumar más adelante proveedores externos como Google o GitHub sin tocar app.js.
 
-El ticket guarda referencias por ObjectId al user y al event, ademas de status (confirmed, pending o cancelled), quantity (mayor a cero), un reservationCode unico, createdAt y cancelledAt.
+ROLES Y PERMISOS
 
-Para anotarse cualquier usuario logueado manda POST /api/events/:eid/tickets con la cantidad de lugares, por ejemplo quantity 2. En tickets.service.js se revisa que el evento exista (si no, 404), que este published y no cancelado ni finalizado, que la fecha no haya pasado, que quantity sea un numero valido mayor a cero, que el usuario no tenga ya un ticket activo para ese evento y que queden cupos suficientes. Para los cupos se suman las cantidades de los tickets activos (confirmed o pending) y se restan de la capacidad, y los cancelled nunca cuentan. Si todo esta bien se crea el ticket con su codigo, por ejemplo TCK-A1B2C3D4, y responde 201.
+Para distinguir entre un usuario que no inició sesión y uno que sí lo hizo pero no tiene permisos suficientes, agregué dos middlewares. El de autenticación valida la cookie mediante la estrategia current y responde 401 si no hay una sesión válida. El de autorización recibe como parámetro los roles permitidos para cada ruta y los compara con el rol del usuario, respondiendo 403 si no coincide. En resumen, el 401 significa que no se inició sesión o que el token venció o no es válido, mientras que el 403 significa que se inició sesión pero el rol no alcanza para la acción, o que se intenta modificar algo que pertenece a otro usuario.
 
-Apenas se confirma la inscripcion, mail.service.js manda un correo con Nodemailer al email del usuario con el codigo de reserva, el titulo del evento, la fecha, la ubicacion y la cantidad. Las credenciales del mail se toman siempre del .env.
+Cualquier persona puede consultar los eventos publicados, tanto el listado como el detalle de uno puntual. Para crear eventos hay que estar autenticado y tener rol organizer o admin, por lo que un user común recibe un 403. Para modificar o cancelar un evento también hace falta ser organizer o admin, y además se valida la propiedad del recurso: un organizer solo puede tocar los eventos que creó él mismo, mientras que un admin puede modificar o cancelar cualquiera. Las rutas administrativas de usuarios, que son GET /api/users (lista sin mostrar contraseñas), GET /api/users/:id y PATCH /api/users/:id/role, están habilitadas únicamente para el rol admin.
 
-Para ver sus propias inscripciones el usuario usa GET /api/tickets/my-tickets, que trae sus tickets con los datos principales del evento (title, date, location y status) sin mostrar nada de otros usuarios. Para ver todos los inscriptos y los cupos disponibles de un evento esta GET /api/events/:eid/tickets, solo para el organizer dueño de ese evento o un admin, y cualquier otro recibe 403.
+EVENTOS
 
-Para cancelar una inscripcion se usa PATCH /api/tickets/:tid/cancel. Solo puede hacerlo el dueño del ticket o un admin, y si otro usuario lo intenta recibe 403. No se borra nada, el ticket pasa a cancelled, se guarda la fecha en cancelledAt y se valida que no haya sido cancelado antes. Al cancelarse, el cupo queda libre al instante para otra persona.
+El modelo Event tiene title, description, category, date, location, capacity, price, status y organizer. La capacidad debe ser mayor a cero y el precio mayor o igual a cero. El estado solo puede ser draft, published, cancelled o finished. El organizer es una referencia por ObjectId al usuario que creó el evento y se toma directamente de la sesión, sin aceptarlo desde el cuerpo de la petición.
 
-Manejo de errores
+Las reglas de negocio están en events.service.js. Al crear o editar un evento no se permite una fecha pasada, la capacidad debe ser mayor a cero y el precio no puede ser negativo. Los eventos nunca se borran físicamente de la base de datos: cancelar un evento significa cambiar su estado a cancelled, ya sea con PATCH /api/events/:id/status o con DELETE /api/events/:id, que realiza la misma baja lógica. Una vez que un evento está cancelled o finished, ya no se puede modificar ni volver a publicar.
 
-Los controladores mandan cualquier error con next(error) al middleware errorHandler, que se encarga de responder de forma pareja los codigos 400, 401, 403, 404, 409 y 500.
+Las rutas de eventos son POST /api/events para crear (organizer o admin), GET /api/events para listar (pública), GET /api/events/:id para ver el detalle (pública, responde 404 si no existe), PUT /api/events/:id para modificar y PATCH /api/events/:id/status para cambiar el estado, estas dos últimas solo para el organizer dueño o un admin. Si el id del evento tiene un formato inválido, se responde 400.
 
-Como probar todo el recorrido
+El listado soporta filtros, paginación y ordenamiento mediante query params. Se puede filtrar por status, category, location y por rango de fechas con dateFrom y dateTo. Se puede elegir la página y el tamaño con page y limit, y ordenar con sort, por ejemplo sort=date de forma ascendente o sort=-price de forma descendente. La respuesta viene paginada e incluye los datos, la página actual, el límite, el total de resultados y el total de páginas.
 
-Primero se registra un usuario desde POST /api/sessions/register, que siempre arranca como user. Para probar organizer o admin se puede cambiar el campo role directamente en la coleccion users de MongoDB Atlas, o usar PATCH /api/users/:id/role desde una cuenta admin. Despues se hace login en POST /api/sessions/login, lo que deja la cookie currentUser activa, y se verifica en GET /api/sessions/current. Con una cuenta organizer o admin se crean eventos, se editan o se cambia su estado. Cualquier visitante puede mirar el catalogo en GET /api/events, y un usuario logueado se puede inscribir en POST /api/events/:eid/tickets y recibe su codigo por mail. Despues ve sus entradas en GET /api/tickets/my-tickets, el organizador o admin controla los cupos en GET /api/events/:eid/tickets, y si el participante cancela desde PATCH /api/tickets/:tid/cancel el ticket pasa a cancelled y el cupo se libera. Al final se cierra la sesion con POST /api/sessions/logout.
+TICKETS E INSCRIPCIONES
 
-AL Final lo probe con Postman haciendo todo ese recorrido con usuarios de los tres roles. Comprobe que las rutas privadas sin cookie dan 401, que un user no puede crear eventos ni ver usuarios, que un organizer puede crear y modificar sus propios eventos pero no los de otro organizer ni entrar a /api/users, y que el admin puede hacer todo. Tambien probe loguearme con un mail que no existe, con la contraseña mal, entrar a current sin cookie y con un token cambiado a mano, y en todos los casos respondio lo que tenia que responder. Ademas, los listados de eventos exiten con y sin filtros, y cuando no hay nada devuelven la lista bacia con total 0 y con esto seria todo.
+El modelo Ticket guarda referencias por ObjectId al usuario y al evento, sin embeber objetos completos, además del estado (confirmed, pending o cancelled), la cantidad de lugares (mayor a cero), un código de reserva único, la fecha de creación y la fecha de cancelación.
+
+Inscripción
+
+Cualquier usuario autenticado puede inscribirse a un evento con POST /api/events/:eid/tickets, indicando la cantidad de lugares. Toda la validación está en tickets.service.js, donde se comprueba que el evento exista (si no, responde 404), que esté publicado y no cancelado ni finalizado, que su fecha no haya pasado, que la cantidad sea un número válido mayor a cero, que el usuario no tenga ya un ticket activo para ese evento y que haya cupos suficientes. Para calcular los cupos se suman las cantidades de todos los tickets activos del evento (confirmed o pending) y se restan de la capacidad total, y los tickets cancelados nunca cuentan como cupo ocupado. Si todo está bien, se crea el ticket con su código de reserva y se responde 201.
+
+Correo de confirmación
+
+Cuando la inscripción se confirma, mail.service.js envía un correo al email del usuario mediante Nodemailer, con el código de reserva, el título del evento, la fecha, la ubicación y la cantidad de lugares. Las credenciales del correo se toman siempre de las variables de entorno.
+
+Consulta de tickets
+
+El usuario autenticado puede consultar sus propias inscripciones en GET /api/tickets/my-tickets, que devuelve sus tickets junto con los datos principales del evento (título, fecha, ubicación y estado), sin exponer información de otros usuarios. Para ver todos los inscriptos y los cupos disponibles de un evento existe GET /api/events/:eid/tickets, habilitada únicamente para el organizer dueño de ese evento o para un admin. Cualquier otro usuario recibe 403.
+
+Cancelación
+
+Para cancelar una inscripción se usa PATCH /api/tickets/:tid/cancel. Solo puede hacerlo el dueño del ticket o un admin, y si otro usuario lo intenta recibe 403. El ticket no se elimina: su estado pasa a cancelled, se guarda la fecha en cancelledAt y se valida que no haya sido cancelado antes. Al cancelarse, el cupo queda libre de inmediato para nuevas inscripciones.
+
+ARQUITECTURA POR CAPAS
+
+Finalmente reorganicé todo el código en una arquitectura formal con DAO, Repository, Service, Controller y DTO, sin cambiar el comportamiento externo de ninguna ruta. Los DAO exponen operaciones genéricas de acceso a datos, como findAll, findById, findOne, create, update y count. Los repositorios se apoyan en ellos y ofrecen métodos propios del dominio, como findByEmail, findPublishedEvents, countActiveTickets o cancelTicket. Los servicios consumen únicamente repositorios y concentran las reglas de negocio, y los controladores quedaron livianos.
+
+Los errores se envían con next(error) al middleware centralizado errorHandler, que responde de forma pareja los códigos 400, 401, 403, 404, 409 y 500. Además, los DTO filtran todas las salidas del usuario autenticado, los eventos y los tickets, garantizando que ni las rutas protegidas ni los populate devuelvan contraseñas ni datos sensibles de más.
+
+FLUJO COMPLETO DE USO
+
+Primero se registra un usuario común, que siempre arranca con rol user. Para probar los roles organizer o admin se puede cambiar el campo role directamente en la colección users de MongoDB Atlas, o usar PATCH /api/users/:id/role desde una cuenta admin. Luego se inicia sesión, lo que deja activa la cookie currentUser, y se puede verificar la sesión en la ruta de sesión actual. Con una cuenta organizer o admin se crean eventos y se pueden editar o cambiar de estado. Cualquier visitante puede consultar el catálogo con filtros, paginación y ordenamiento, y un usuario logueado puede inscribirse a un evento y recibir su código de reserva por correo. Después consulta sus entradas, el organizador o administrador controla los cupos ocupados, y si el participante cancela su inscripción, el ticket pasa a cancelled y el cupo se libera al instante para otra persona. Por último, se cierra la sesión.
