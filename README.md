@@ -131,3 +131,55 @@ Arme tres estrategias ahi adentro. La estrategia register usa LocalStrategy con 
 La estrategia login tambien usa LocalStrategy y se encarga solamente de buscar el usuario por email y comparar la contraseña con bcrypt, devolviendo el usuario si coincide o fallando con el mismo mensaje generico de credenciales invalidas si algo esta mal. El controlador de login es el que recibe ese usuario autenticado, genera el token jwt firmado con JWT_SECRET y guarda la cookie currentUser httpOnly, manteniendo las mismas variables de entorno de .env.example (PORT, MONGO_URL, JWT_SECRET, JWT_EXPIRES_IN y NODE_ENV).
 
 Para GET /api/sessions/current arme la estrategia current con passport-jwt y un extractor propio que lee la cookie currentUser. Si el token es valido deja { id, email, role } en req.user sin password y si falta la cookie o el token esta vencido o manipulado responde 401. El logout sigue igual eliminando la cookie sin pasar por Passport. Ademas el archivo passport.config.js ya quedo estructurado para que mas adelante se puedan enchufar estrategias de providers externos como Google o GitHub directamente ahi sin tocar app.js.
+
+Para la parte de roles y autorizacion agregue un sistema de permisos separado en middlewares para diferenciar bien cuando alguien no esta logueado y cuando si esta logueado pero no tiene rango suficiente. Los roles posibles en el modelo de usuario son user, organizer y admin, y como siempre el registro publico solo deja crear cuentas con rol user.
+
+Para controlar esto estan los dos middlewares en la carpeta middlewares. El primero es auth.middleware.js que valida la cookie currentUser con la estrategia current de Passport y si no hay sesion valida responde 401 con "No autenticado". El segundo es authorize.middleware.js, un middleware reutilizable que recibe por parametro los roles permitidos para una ruta y los compara contra req.user.role. Si el rol del usuario no coincide responde 403 con:
+
+```json
+{
+  "status": "error",
+  "message": "No tenés permisos para realizar esta acción"
+}
+```
+
+La diferencia entre 401 y 403 queda bien marcada asi: el 401 significa que no iniciaste sesion o tu token vencio o es trucho, mientras que el 403 significa que si iniciaste sesion pero tu rol no alcanza para hacer esa accion o estas intentando editar algo de otro usuario.
+
+La matriz de permisos de la plataforma queda armada de esta forma: cualquiera puede consultar los eventos publicados en GET /api/events o buscar uno puntual en GET /api/events/:id sin necesidad de permiso especial. Para crear eventos en POST /api/events hace falta estar autenticado y tener rol organizer o admin, asi que un usuario comun con rol user recibe un 403. Para modificar o cancelar un evento en PUT /api/events/:id, PATCH /api/events/:id/cancel o DELETE /api/events/:id tambien hace falta ser organizer o admin, pero ademas validamos propiedad del recurso: un organizer solo puede editar o cancelar los eventos que creo el mismo (si intenta tocar el evento de otro organizer recibe 403), mientras que un admin puede modificar o cancelar cualquier evento sin importar quien lo creo. Por ultimo, las rutas administrativas de usuarios como GET /api/users (que lista los usuarios sin mostrar contraseñas), GET /api/users/:id y PATCH /api/users/:id/role solo estan habilitadas para el rol admin; si entra un user o un organizer les devuelve 403.
+
+Por ejemplo, si un usuario con rol organizer o admin manda un POST /api/events con un body asi:
+
+```json
+{
+  "title": "Torneo de Padel Verano",
+  "sportType": "Padel",
+  "location": "Club Central",
+  "date": "2026-12-15T18:00:00.000Z",
+  "maxParticipants": 32,
+  "price": 5000
+}
+```
+
+El servidor guarda el evento asignandole automaticamente su id como organizer y responde 201:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "id": "6690...",
+    "title": "Torneo de Padel Verano",
+    "sportType": "Padel",
+    "category": "General",
+    "location": "Club Central",
+    "date": "2026-12-15T18:00:00.000Z",
+    "maxParticipants": 32,
+    "price": 5000,
+    "status": "published",
+    "organizer": "6b01df6d7c90c6fa0e85b023"
+  }
+}
+```
+
+Si esa misma peticion la hace un user comun recibe 403, y si la mandan sin cookie recibe 401. Tambien si alguien manda un id de evento con formato invalido responde 400 y si busca un evento que no existe responde 404.
+
+Para probar todo esto contra la base arme tambien usuarios de prueba con los distintos roles (user, organizer y admin) y comprobe que las rutas privadas sin cookie devuelvan 401, que el user no pueda crear eventos ni ver usuarios, que el organizer pueda crear y modificar sus propios eventos pero no los de otro organizer ni entrar a /api/users, y que el admin pueda hacer todo. Como en las entregas anteriores, ni el archivo .env, ni node_modules ni ninguna credencial privada se suben al repositorio.

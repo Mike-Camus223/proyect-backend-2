@@ -1,8 +1,8 @@
 import EventModel from '../models/Event.js';
 
 class EventsDAO {
-  async getAll() {
-    return await EventModel.find().lean();
+  async getAll(filter = {}) {
+    return await EventModel.find(filter).lean();
   }
 
   async getById(id) {
@@ -11,6 +11,17 @@ class EventsDAO {
 
   async create(eventData) {
     return await EventModel.create(eventData);
+  }
+
+  async update(id, updateData) {
+    return await EventModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
+    }).lean();
+  }
+
+  async delete(id) {
+    return await EventModel.findByIdAndDelete(id).lean();
   }
 }
 

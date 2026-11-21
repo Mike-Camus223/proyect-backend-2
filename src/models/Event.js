@@ -40,9 +40,15 @@ const eventSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
+    status: {
+      type: String,
+      enum: ['published', 'cancelled'],
+      default: 'published'
+    },
     organizer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      required: true
     }
   },
   {

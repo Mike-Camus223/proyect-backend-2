@@ -20,6 +20,10 @@ class UsersRepository {
   async createUser(userData) {
     return await this.dao.create(userData);
   }
+
+  async updateUserRole(id, role) {
+    return await this.dao.updateRole(id, role);
+  }
 }
 
 export const usersRepository = new UsersRepository(usersDAO);

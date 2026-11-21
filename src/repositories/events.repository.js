@@ -5,8 +5,8 @@ class EventsRepository {
     this.dao = dao;
   }
 
-  async getEvents() {
-    return await this.dao.getAll();
+  async getEvents(filter = {}) {
+    return await this.dao.getAll(filter);
   }
 
   async getEventById(id) {
@@ -15,6 +15,14 @@ class EventsRepository {
 
   async createEvent(eventData) {
     return await this.dao.create(eventData);
+  }
+
+  async updateEvent(id, updateData) {
+    return await this.dao.update(id, updateData);
+  }
+
+  async deleteEvent(id) {
+    return await this.dao.delete(id);
   }
 }
 
