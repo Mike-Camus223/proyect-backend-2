@@ -1,15 +1,5 @@
 import usersService from '../services/users.service.js';
 
-const handleControllerError = (error, res, next) => {
-  if (error.statusCode) {
-    return res.status(error.statusCode).json({
-      status: 'error',
-      message: error.message
-    });
-  }
-  return next(error);
-};
-
 export const getUsers = async (req, res, next) => {
   try {
     const users = await usersService.getAllUsers();
@@ -18,7 +8,7 @@ export const getUsers = async (req, res, next) => {
       payload: users
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -30,7 +20,7 @@ export const getUserById = async (req, res, next) => {
       payload: user
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -42,7 +32,6 @@ export const updateUserRole = async (req, res, next) => {
       payload: updated
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
-

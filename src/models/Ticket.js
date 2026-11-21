@@ -40,3 +40,4 @@ const ticketSchema = new mongoose.Schema(
 
 export const TicketModel = mongoose.model('Ticket', ticketSchema);
 export default TicketModel;
+

@@ -1,20 +1,28 @@
 import eventsDAO from '../dao/events.dao.js';
 
-class EventsRepository {
+class EventRepository {
   constructor(dao) {
     this.dao = dao;
   }
 
-  async getEvents(filter = {}) {
-    return await this.dao.getAll(filter);
+  isValidId(id) {
+    return this.dao.isValidId(id);
+  }
+
+  async findPublishedEvents(filter = {}, options = {}) {
+    return await this.dao.findPaginated(filter, options);
   }
 
   async getPaginatedEvents(filter = {}, options = {}) {
-    return await this.dao.getPaginated(filter, options);
+    return this.findPublishedEvents(filter, options);
+  }
+
+  async findEventById(id, options = {}) {
+    return await this.dao.findById(id, options);
   }
 
   async getEventById(id, options = {}) {
-    return await this.dao.getById(id, options);
+    return this.findEventById(id, options);
   }
 
   async createEvent(eventData) {
@@ -24,7 +32,11 @@ class EventsRepository {
   async updateEvent(id, updateData) {
     return await this.dao.update(id, updateData);
   }
+
+  async cancelEvent(id) {
+    return await this.dao.update(id, { status: 'cancelled' });
+  }
 }
 
-export const eventsRepository = new EventsRepository(eventsDAO);
+export const eventsRepository = new EventRepository(eventsDAO);
 export default eventsRepository;

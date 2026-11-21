@@ -1,11 +1,16 @@
+import mongoose from 'mongoose';
 import EventModel from '../models/Event.js';
 
-class EventsDAO {
-  async getAll(filter = {}) {
+class EventDAO {
+  isValidId(id) {
+    return mongoose.Types.ObjectId.isValid(id);
+  }
+
+  async findAll(filter = {}) {
     return await EventModel.find(filter).lean();
   }
 
-  async getPaginated(filter = {}, { skip = 0, limit = 10, sort = { date: 1 } } = {}) {
+  async findPaginated(filter = {}, { skip = 0, limit = 10, sort = { date: 1 } } = {}) {
     const [docs, total] = await Promise.all([
       EventModel.find(filter)
         .sort(sort)
@@ -19,12 +24,16 @@ class EventsDAO {
     return { docs, total };
   }
 
-  async getById(id, { populateOrganizer = false } = {}) {
+  async findById(id, { populateOrganizer = false } = {}) {
     const query = EventModel.findById(id);
     if (populateOrganizer) {
       query.populate('organizer', 'first_name last_name email');
     }
     return await query.lean();
+  }
+
+  async findOne(filter) {
+    return await EventModel.findOne(filter).lean();
   }
 
   async create(eventData) {
@@ -37,7 +46,11 @@ class EventsDAO {
       runValidators: true
     }).lean();
   }
+
+  async count(filter = {}) {
+    return await EventModel.countDocuments(filter);
+  }
 }
 
-export const eventsDAO = new EventsDAO();
+export const eventsDAO = new EventDAO();
 export default eventsDAO;

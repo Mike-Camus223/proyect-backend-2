@@ -1,47 +1,42 @@
 import usersRepository from '../repositories/users.repository.js';
+import UserDTO from '../dto/user.dto.js';
 import { createHash, isValidPassword } from '../utils/hash.js';
 import { generateToken } from '../utils/jwt.js';
+
+const createHttpError = (message, statusCode) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
 
 class SessionsService {
   constructor(repository) {
     this.repository = repository;
   }
 
-  /**
-   * Registra un nuevo usuario en la base de datos tras validar los campos.
-   */
   async registerUser({ first_name, last_name, email, password }) {
     if (!first_name || !last_name || !email || !password) {
-      const error = new Error('Faltan campos obligatorios');
-      error.statusCode = 400;
-      throw error;
+      throw createHttpError('Faltan campos obligatorios', 400);
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      const error = new Error('Formato de email inválido');
-      error.statusCode = 400;
-      throw error;
+      throw createHttpError('Formato de email inválido', 400);
     }
 
     if (password.length < 6) {
-      const error = new Error('La contraseña debe tener al menos 6 caracteres');
-      error.statusCode = 400;
-      throw error;
+      throw createHttpError('La contraseña debe tener al menos 6 caracteres', 400);
     }
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const exists = await this.repository.getUserByEmail(normalizedEmail);
+    const exists = await this.repository.findByEmail(normalizedEmail);
     if (exists) {
-      const error = new Error('El email ya está registrado');
-      error.statusCode = 409;
-      throw error;
+      throw createHttpError('El email ya está registrado', 409);
     }
 
     const hashedPassword = createHash(password);
 
-    // Rol user fijo por defecto sin permitir manipulación desde el body
     const newUser = await this.repository.createUser({
       first_name: first_name.trim(),
       last_name: last_name.trim(),
@@ -50,46 +45,22 @@ class SessionsService {
       role: 'user'
     });
 
-    return {
-      id: newUser._id.toString(),
-      first_name: newUser.first_name,
-      last_name: newUser.last_name,
-      email: newUser.email,
-      role: newUser.role
-    };
+    return UserDTO.from(newUser);
   }
 
-  /**
-   * Valida las credenciales de un usuario y devuelve su payload básico sin password.
-   */
   async validateCredentials({ email, password }) {
     if (!email || !password) {
-      const error = new Error('Credenciales inválidas');
-      error.statusCode = 401;
-      throw error;
+      throw createHttpError('Credenciales inválidas', 401);
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const user = await this.repository.getUserByEmail(normalizedEmail);
+    const user = await this.repository.findByEmail(normalizedEmail);
 
-    if (!user) {
-      const error = new Error('Credenciales inválidas');
-      error.statusCode = 401;
-      throw error;
+    if (!user || !isValidPassword(password, user.password)) {
+      throw createHttpError('Credenciales inválidas', 401);
     }
 
-    const isMatch = isValidPassword(password, user.password);
-    if (!isMatch) {
-      const error = new Error('Credenciales inválidas');
-      error.statusCode = 401;
-      throw error;
-    }
-
-    return {
-      id: user._id.toString(),
-      email: user.email,
-      role: user.role
-    };
+    return UserDTO.current(user);
   }
 
   async loginUser(credentials) {

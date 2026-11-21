@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import mongoose from 'mongoose';
 import ticketsRepository from '../repositories/tickets.repository.js';
 import eventsRepository from '../repositories/events.repository.js';
+import TicketDTO from '../dto/ticket.dto.js';
 import mailService from './mail.service.js';
 
 const createHttpError = (message, statusCode) => {
@@ -10,29 +10,6 @@ const createHttpError = (message, statusCode) => {
   return error;
 };
 
-const formatRef = (ref, fields) => {
-  if (!ref) return null;
-  if (!(ref instanceof mongoose.Types.ObjectId) && typeof ref === 'object' && (ref._id || ref.id)) {
-    const obj = { id: (ref._id || ref.id).toString() };
-    for (const f of fields) {
-      if (ref[f] !== undefined) obj[f] = ref[f];
-    }
-    return obj;
-  }
-  return ref.toString();
-};
-
-const formatTicket = (ticket) => ({
-  id: (ticket._id || ticket.id).toString(),
-  user: formatRef(ticket.user, ['first_name', 'last_name', 'email']),
-  event: formatRef(ticket.event, ['title', 'date', 'location', 'status']),
-  status: ticket.status,
-  quantity: ticket.quantity,
-  reservationCode: ticket.reservationCode,
-  cancelledAt: ticket.cancelledAt || null,
-  createdAt: ticket.createdAt
-});
-
 class TicketsService {
   constructor(repository, eventsRepo, mailer) {
     this.repository = repository;
@@ -40,12 +17,8 @@ class TicketsService {
     this.mailer = mailer;
   }
 
-  /**
-   * Inscribe a un usuario autenticado en un evento validando estado, fecha,
-   * duplicados, cupos disponibles y enviando notificación por email.
-   */
   async enrollInEvent(eventId, rawQuantity, currentUser) {
-    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    if (!this.eventsRepo.isValidId(eventId)) {
       throw createHttpError('ID de evento inválido', 400);
     }
 
@@ -54,7 +27,7 @@ class TicketsService {
       throw createHttpError('La cantidad (quantity) debe ser un número entero mayor a 0', 400);
     }
 
-    const event = await this.eventsRepo.getEventById(eventId);
+    const event = await this.eventsRepo.findEventById(eventId);
     if (!event) {
       throw createHttpError('Evento no encontrado', 404);
     }
@@ -76,7 +49,7 @@ class TicketsService {
       throw createHttpError('Ya tenés una inscripción activa para este evento', 409);
     }
 
-    const occupied = await this.repository.getOccupiedCapacity(eventId);
+    const occupied = await this.repository.countActiveTickets(eventId);
     const available = event.capacity - occupied;
 
     if (quantity > available) {
@@ -109,26 +82,20 @@ class TicketsService {
       console.error('Error enviando email de confirmación:', mailError.message);
     }
 
-    return formatTicket(created);
+    return TicketDTO.from(created);
   }
 
-  /**
-   * Lista los tickets pertenecientes al usuario autenticado con datos del evento.
-   */
   async getMyTickets(userId) {
-    const tickets = await this.repository.getTicketsByUser(userId);
-    return tickets.map(formatTicket);
+    const tickets = await this.repository.findTicketsByUser(userId);
+    return TicketDTO.fromList(tickets);
   }
 
-  /**
-   * Lista los tickets de un evento para su organizador dueño o para un administrador.
-   */
   async getEventTickets(eventId, currentUser) {
-    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    if (!this.eventsRepo.isValidId(eventId)) {
       throw createHttpError('ID de evento inválido', 400);
     }
 
-    const event = await this.eventsRepo.getEventById(eventId);
+    const event = await this.eventsRepo.findEventById(eventId);
     if (!event) {
       throw createHttpError('Evento no encontrado', 404);
     }
@@ -138,27 +105,24 @@ class TicketsService {
     }
 
     const [tickets, occupied] = await Promise.all([
-      this.repository.getTicketsByEvent(eventId),
-      this.repository.getOccupiedCapacity(eventId)
+      this.repository.findTicketsByEvent(eventId),
+      this.repository.countActiveTickets(eventId)
     ]);
 
     return {
       capacity: event.capacity,
       occupied,
       available: Math.max(0, event.capacity - occupied),
-      tickets: tickets.map(formatTicket)
+      tickets: TicketDTO.fromList(tickets)
     };
   }
 
-  /**
-   * Cancela lógicamente un ticket registrando cancelledAt y liberando su cupo.
-   */
   async cancelTicket(ticketId, currentUser) {
-    if (!mongoose.Types.ObjectId.isValid(ticketId)) {
+    if (!this.repository.isValidId(ticketId)) {
       throw createHttpError('ID de ticket inválido', 400);
     }
 
-    const existing = await this.repository.getTicketById(ticketId);
+    const existing = await this.repository.findTicketById(ticketId);
     if (!existing) {
       throw createHttpError('Ticket no encontrado', 404);
     }
@@ -171,12 +135,8 @@ class TicketsService {
       throw createHttpError('El ticket ya se encuentra cancelado', 400);
     }
 
-    const updated = await this.repository.updateTicket(ticketId, {
-      status: 'cancelled',
-      cancelledAt: new Date()
-    });
-
-    return formatTicket(updated);
+    const updated = await this.repository.cancelTicket(ticketId);
+    return TicketDTO.from(updated);
   }
 }
 

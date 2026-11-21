@@ -3,10 +3,8 @@ import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import { config } from './env.config.js';
 import sessionsService from '../services/sessions.service.js';
+import UserDTO from '../dto/user.dto.js';
 
-/**
- * Extrae el token JWT desde la cookie HTTP Only 'currentUser'.
- */
 const cookieExtractor = (req) => {
   if (req && req.cookies) {
     return req.cookies.currentUser || null;
@@ -16,11 +14,9 @@ const cookieExtractor = (req) => {
 
 /**
  * Inicializa y centraliza las estrategias de Passport.js.
- * Esta estructura permite agregar futuros providers externos (Google, GitHub, etc.)
- * directamente aqui sin necesidad de modificar app.js.
+ * Preparado para agregar providers externos (Google, GitHub, etc.) sin tocar app.js.
  */
 export const initializePassport = () => {
-  // Estrategia local para registro de usuarios
   passport.use(
     'register',
     new LocalStrategy(
@@ -52,7 +48,6 @@ export const initializePassport = () => {
     )
   );
 
-  // Estrategia local para login (solo valida credenciales; el controller genera el JWT)
   passport.use(
     'login',
     new LocalStrategy(
@@ -77,7 +72,6 @@ export const initializePassport = () => {
     )
   );
 
-  // Estrategia JWT para validar la cookie currentUser en rutas protegidas
   passport.use(
     'current',
     new JwtStrategy(
@@ -91,21 +85,13 @@ export const initializePassport = () => {
             return done(null, false, { message: 'No autenticado' });
           }
 
-          return done(null, {
-            id: jwtPayload.id,
-            email: jwtPayload.email,
-            role: jwtPayload.role
-          });
+          return done(null, UserDTO.current(jwtPayload));
         } catch (error) {
           return done(error, false);
         }
       }
     )
   );
-
-  // Preparado para sumar providers externos (Google, GitHub, etc.) sin tocar app.js:
-  // passport.use('google', new GoogleStrategy({ ... }, async (accessToken, refreshToken, profile, done) => { ... }));
-  // passport.use('github', new GitHubStrategy({ ... }, async (accessToken, refreshToken, profile, done) => { ... }));
 };
 
 export default initializePassport;

@@ -1,15 +1,7 @@
-import mongoose from 'mongoose';
 import usersRepository from '../repositories/users.repository.js';
+import UserDTO from '../dto/user.dto.js';
 
 const VALID_ROLES = ['user', 'organizer', 'admin'];
-
-const formatUser = (user) => ({
-  id: (user._id || user.id).toString(),
-  first_name: user.first_name,
-  last_name: user.last_name,
-  email: user.email,
-  role: user.role
-});
 
 const createHttpError = (message, statusCode) => {
   const error = new Error(message);
@@ -23,25 +15,25 @@ class UsersService {
   }
 
   async getAllUsers() {
-    const users = await this.repository.getUsers();
-    return users.map(formatUser);
+    const users = await this.repository.findAllUsers();
+    return UserDTO.fromList(users);
   }
 
   async getUserById(id) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!this.repository.isValidId(id)) {
       throw createHttpError('ID de usuario inválido', 400);
     }
 
-    const user = await this.repository.getUserById(id);
+    const user = await this.repository.findUserById(id);
     if (!user) {
       throw createHttpError('Usuario no encontrado', 404);
     }
 
-    return formatUser(user);
+    return UserDTO.from(user);
   }
 
   async updateUserRole(id, role) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!this.repository.isValidId(id)) {
       throw createHttpError('ID de usuario inválido', 400);
     }
 
@@ -54,10 +46,9 @@ class UsersService {
       throw createHttpError('Usuario no encontrado', 404);
     }
 
-    return formatUser(updated);
+    return UserDTO.from(updated);
   }
 }
 
 export const usersService = new UsersService(usersRepository);
 export default usersService;
-

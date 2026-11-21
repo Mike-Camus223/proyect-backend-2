@@ -1,42 +1,46 @@
 import mongoose from 'mongoose';
 import TicketModel from '../models/Ticket.js';
 
-class TicketsDAO {
+class TicketDAO {
+  isValidId(id) {
+    return mongoose.Types.ObjectId.isValid(id);
+  }
+
   async create(ticketData) {
     return await TicketModel.create(ticketData);
   }
 
-  async getById(id) {
+  async findById(id) {
     return await TicketModel.findById(id).lean();
   }
 
-  async getByUser(userId) {
-    return await TicketModel.find({ user: userId })
-      .populate('event', 'title date location status')
-      .sort({ createdAt: -1 })
-      .lean();
+  async findOne(filter) {
+    return await TicketModel.findOne(filter).lean();
   }
 
-  async getByEvent(eventId) {
-    return await TicketModel.find({ event: eventId })
-      .populate('user', 'first_name last_name email role')
-      .sort({ createdAt: -1 })
-      .lean();
+  async findAll(filter = {}, { populateEvent = false, populateUser = false } = {}) {
+    const query = TicketModel.find(filter).sort({ createdAt: -1 });
+    if (populateEvent) {
+      query.populate('event', 'title date location status');
+    }
+    if (populateUser) {
+      query.populate('user', 'first_name last_name email');
+    }
+    return await query.lean();
   }
 
-  async findActiveByUserAndEvent(userId, eventId) {
-    return await TicketModel.findOne({
-      user: userId,
-      event: eventId,
-      status: { $in: ['confirmed', 'pending'] }
+  async update(id, updateData) {
+    return await TicketModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true
     }).lean();
   }
 
-  /**
-   * Suma las cantidades de todos los tickets activos (confirmed/pending) de un evento.
-   * Los tickets en estado cancelled no ocupan cupo.
-   */
-  async getOccupiedQuantityByEvent(eventId) {
+  async count(filter = {}) {
+    return await TicketModel.countDocuments(filter);
+  }
+
+  async aggregateOccupiedQuantity(eventId) {
     const result = await TicketModel.aggregate([
       {
         $match: {
@@ -54,14 +58,7 @@ class TicketsDAO {
 
     return result[0]?.totalQuantity || 0;
   }
-
-  async update(id, updateData) {
-    return await TicketModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true
-    }).lean();
-  }
 }
 
-export const ticketsDAO = new TicketsDAO();
+export const ticketsDAO = new TicketDAO();
 export default ticketsDAO;

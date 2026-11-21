@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import eventsRepository from '../repositories/events.repository.js';
+import EventDTO from '../dto/event.dto.js';
 
 const VALID_STATUSES = ['draft', 'published', 'cancelled', 'finished'];
 const SORTABLE_FIELDS = ['date', 'price', 'capacity', 'title', 'createdAt'];
@@ -11,33 +11,6 @@ const createHttpError = (message, statusCode) => {
 };
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const formatOrganizer = (organizer) => {
-  if (!organizer) return null;
-  if (!(organizer instanceof mongoose.Types.ObjectId) && typeof organizer === 'object' && organizer.email) {
-    return {
-      id: (organizer._id || organizer.id).toString(),
-      first_name: organizer.first_name,
-      last_name: organizer.last_name,
-      email: organizer.email
-    };
-  }
-  return organizer.toString();
-};
-
-const formatEvent = (event) => ({
-  id: (event._id || event.id).toString(),
-  title: event.title,
-  description: event.description,
-  category: event.category,
-  ...(event.sportType ? { sportType: event.sportType } : {}),
-  date: event.date,
-  location: event.location,
-  capacity: event.capacity,
-  price: event.price,
-  status: event.status,
-  organizer: formatOrganizer(event.organizer)
-});
 
 const parseFutureDate = (dateValue) => {
   const parsed = new Date(dateValue);
@@ -130,11 +103,11 @@ class EventsService {
     }
 
     const skip = (page - 1) * limit;
-    const { docs, total } = await this.repository.getPaginatedEvents(filter, { skip, limit, sort });
+    const { docs, total } = await this.repository.findPublishedEvents(filter, { skip, limit, sort });
     const totalPages = Math.ceil(total / limit) || 1;
 
     return {
-      data: docs.map(formatEvent),
+      data: EventDTO.fromList(docs),
       page,
       limit,
       total,
@@ -143,16 +116,16 @@ class EventsService {
   }
 
   async getEventById(id) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!this.repository.isValidId(id)) {
       throw createHttpError('ID de evento inválido', 400);
     }
 
-    const event = await this.repository.getEventById(id, { populateOrganizer: true });
+    const event = await this.repository.findEventById(id, { populateOrganizer: true });
     if (!event) {
       throw createHttpError('Evento no encontrado', 404);
     }
 
-    return formatEvent(event);
+    return EventDTO.from(event);
   }
 
   async createEvent(eventData, organizerId) {
@@ -174,7 +147,6 @@ class EventsService {
       initialStatus = status;
     }
 
-    // organizer siempre se asigna desde el usuario autenticado
     const created = await this.repository.createEvent({
       title: title.trim(),
       description: description.trim(),
@@ -188,15 +160,15 @@ class EventsService {
       organizer: organizerId
     });
 
-    return formatEvent(created);
+    return EventDTO.from(created);
   }
 
   async updateEvent(id, updateData, currentUser) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!this.repository.isValidId(id)) {
       throw createHttpError('ID de evento inválido', 400);
     }
 
-    const existing = await this.repository.getEventById(id);
+    const existing = await this.repository.findEventById(id);
     if (!existing) {
       throw createHttpError('Evento no encontrado', 404);
     }
@@ -235,11 +207,11 @@ class EventsService {
     }
 
     const updated = await this.repository.updateEvent(id, payload);
-    return formatEvent(updated);
+    return EventDTO.from(updated);
   }
 
   async updateEventStatus(id, newStatus, currentUser) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!this.repository.isValidId(id)) {
       throw createHttpError('ID de evento inválido', 400);
     }
 
@@ -247,7 +219,7 @@ class EventsService {
       throw createHttpError(`Estado inválido. Valores permitidos: ${VALID_STATUSES.join(', ')}`, 400);
     }
 
-    const existing = await this.repository.getEventById(id);
+    const existing = await this.repository.findEventById(id);
     if (!existing) {
       throw createHttpError('Evento no encontrado', 404);
     }
@@ -265,7 +237,7 @@ class EventsService {
     }
 
     const updated = await this.repository.updateEvent(id, { status: newStatus });
-    return formatEvent(updated);
+    return EventDTO.from(updated);
   }
 
   async cancelEvent(id, currentUser) {

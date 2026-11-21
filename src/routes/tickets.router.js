@@ -8,3 +8,4 @@ router.get('/my-tickets', auth, getMyTickets);
 router.patch('/:tid/cancel', auth, cancelTicket);
 
 export default router;
+

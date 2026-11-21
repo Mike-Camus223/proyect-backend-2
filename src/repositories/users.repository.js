@@ -1,20 +1,24 @@
 import usersDAO from '../dao/users.dao.js';
 
-class UsersRepository {
+class UserRepository {
   constructor(dao) {
     this.dao = dao;
   }
 
-  async getUsers() {
-    return await this.dao.getAll();
+  isValidId(id) {
+    return this.dao.isValidId(id);
   }
 
-  async getUserById(id) {
-    return await this.dao.getById(id);
+  async findAllUsers() {
+    return await this.dao.findAll();
   }
 
-  async getUserByEmail(email) {
-    return await this.dao.getByEmail(email);
+  async findUserById(id) {
+    return await this.dao.findById(id);
+  }
+
+  async findByEmail(email) {
+    return await this.dao.findOne({ email });
   }
 
   async createUser(userData) {
@@ -22,9 +26,21 @@ class UsersRepository {
   }
 
   async updateUserRole(id, role) {
-    return await this.dao.updateRole(id, role);
+    return await this.dao.update(id, { role });
+  }
+
+  async getUsers() {
+    return this.findAllUsers();
+  }
+
+  async getUserById(id) {
+    return this.findUserById(id);
+  }
+
+  async getUserByEmail(email) {
+    return this.findByEmail(email);
   }
 }
 
-export const usersRepository = new UsersRepository(usersDAO);
+export const usersRepository = new UserRepository(usersDAO);
 export default usersRepository;

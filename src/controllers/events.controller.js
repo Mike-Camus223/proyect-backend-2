@@ -1,15 +1,5 @@
 import eventsService from '../services/events.service.js';
 
-const handleControllerError = (error, res, next) => {
-  if (error.statusCode) {
-    return res.status(error.statusCode).json({
-      status: 'error',
-      message: error.message
-    });
-  }
-  return next(error);
-};
-
 export const getEvents = async (req, res, next) => {
   try {
     const result = await eventsService.getAllEvents(req.query);
@@ -22,7 +12,7 @@ export const getEvents = async (req, res, next) => {
       totalPages: result.totalPages
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -34,7 +24,7 @@ export const getEventById = async (req, res, next) => {
       payload: event
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -46,7 +36,7 @@ export const createEvent = async (req, res, next) => {
       payload: created
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -58,7 +48,7 @@ export const updateEvent = async (req, res, next) => {
       payload: updated
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -70,7 +60,7 @@ export const updateEventStatus = async (req, res, next) => {
       payload: updated
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -83,6 +73,6 @@ export const cancelEvent = async (req, res, next) => {
       payload: cancelled
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };

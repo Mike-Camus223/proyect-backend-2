@@ -1,15 +1,5 @@
 import ticketsService from '../services/tickets.service.js';
 
-const handleControllerError = (error, res, next) => {
-  if (error.statusCode) {
-    return res.status(error.statusCode).json({
-      status: 'error',
-      message: error.message
-    });
-  }
-  return next(error);
-};
-
 export const enrollInEvent = async (req, res, next) => {
   try {
     const ticket = await ticketsService.enrollInEvent(req.params.eid, req.body.quantity, req.user);
@@ -18,7 +8,7 @@ export const enrollInEvent = async (req, res, next) => {
       payload: ticket
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -30,7 +20,7 @@ export const getMyTickets = async (req, res, next) => {
       payload: tickets
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -42,7 +32,7 @@ export const getEventTickets = async (req, res, next) => {
       payload: result
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
 
@@ -55,6 +45,6 @@ export const cancelTicket = async (req, res, next) => {
       payload: updated
     });
   } catch (error) {
-    return handleControllerError(error, res, next);
+    return next(error);
   }
 };
