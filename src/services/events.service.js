@@ -14,9 +14,9 @@ const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const formatOrganizer = (organizer) => {
   if (!organizer) return null;
-  if (typeof organizer === 'object' && organizer._id) {
+  if (!(organizer instanceof mongoose.Types.ObjectId) && typeof organizer === 'object' && organizer.email) {
     return {
-      id: organizer._id.toString(),
+      id: (organizer._id || organizer.id).toString(),
       first_name: organizer.first_name,
       last_name: organizer.last_name,
       email: organizer.email
