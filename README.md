@@ -214,3 +214,37 @@ El listado de GET /api/events ahora soporta filtros, paginacion y ordenamiento p
   "totalPages": 1
 }
 ```
+
+Por ultimo sume todo el modulo de tickets, inscripciones a eventos, control de cupos y notificaciones por email usando Nodemailer. El modelo Ticket en MongoDB guarda referencias por ObjectId a user y event sin embeber objetos completos, ademas de status (que solo acepta confirmed, pending o cancelled), quantity (mayor a cero), reservationCode unico, createdAt y cancelledAt.
+
+Para inscribirse a un evento cualquier usuario autenticado puede mandar un POST /api/events/:eid/tickets pasando en el body la cantidad de lugares, por ejemplo:
+
+```json
+{
+  "quantity": 2
+}
+```
+
+Toda la logica de validacion esta en tickets.service.js. Ahi se chequea que el evento exista (si no devuelve 404), que este en estado published y no cancelado ni finalizado, que la fecha todavia no haya pasado, que quantity sea un numero valido mayor a cero, que el usuario no tenga ya un ticket activo para ese mismo evento y que haya cupos suficientes disponibles. La regla de cupos suma las cantidades de todos los tickets activos (confirmed o pending) del evento y las resta de la capacidad total; los tickets en estado cancelled nunca cuentan como cupo ocupado. Si todo esta bien crea el ticket con su reservationCode y responde 201:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "id": "6691...",
+    "user": "6b01df6d7c90c6fa0e85b023",
+    "event": "6690...",
+    "status": "confirmed",
+    "quantity": 2,
+    "reservationCode": "TCK-A1B2C3D4",
+    "cancelledAt": null,
+    "createdAt": "2026-11-21T19:00:00.000Z"
+  }
+}
+```
+
+Apenas se confirma la inscripcion, mail.service.js envia un correo de confirmacion al email del usuario mediante Nodemailer con el codigo de reserva, el titulo, la fecha, la ubicacion y la cantidad. Las credenciales de correo se toman siempre desde variables de entorno configuradas en .env (MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASS y MAIL_FROM) que tambien quedaron declaradas sin valores privados en .env.example.
+
+Para consultar sus propias inscripciones el usuario autenticado usa GET /api/tickets/my-tickets, que devuelve sus tickets con populate de los datos principales del evento (title, date, location y status) sin exponer informacion de otros usuarios. Por otro lado, para ver todos los inscriptos y cupos disponibles de un evento existe GET /api/events/:eid/tickets, habilitada solamente para el organizer dueño de ese evento o para un admin (un user comun o un organizer de otro evento reciben 403).
+
+Para cancelar una inscripcion se usa PATCH /api/tickets/:tid/cancel. Solo la puede ejecutar el dueño del ticket o un admin (si otro usuario intenta cancelar un ticket ajeno recibe 403). La cancelacion no elimina el ticket de la base sino que cambia su status a cancelled, guarda la fecha en cancelledAt y valida que no haya sido cancelado antes; al pasar a cancelled ese cupo vuelve a quedar libre automaticamente para nuevas inscripciones.
