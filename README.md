@@ -183,3 +183,34 @@ El servidor guarda el evento asignandole automaticamente su id como organizer y 
 Si esa misma peticion la hace un user comun recibe 403, y si la mandan sin cookie recibe 401. Tambien si alguien manda un id de evento con formato invalido responde 400 y si busca un evento que no existe responde 404.
 
 Para probar todo esto contra la base arme tambien usuarios de prueba con los distintos roles (user, organizer y admin) y comprobe que las rutas privadas sin cookie devuelvan 401, que el user no pueda crear eventos ni ver usuarios, que el organizer pueda crear y modificar sus propios eventos pero no los de otro organizer ni entrar a /api/users, y que el admin pueda hacer todo. Como en las entregas anteriores, ni el archivo .env, ni node_modules ni ninguna credencial privada se suben al repositorio.
+
+Despues sume la entidad completa de eventos con toda la logica de negocio y las consultas avanzadas. El modelo Event en MongoDB tiene title, description, category, date, location, capacity (mayor a 0), price (mayor o igual a 0), status (que solo acepta draft, published, cancelled o finished) y organizer, que es una referencia por ObjectId al usuario que creo el evento y se toma directo desde req.user sin aceptar que lo manden en el body.
+
+Toda la validacion de reglas de negocio vive en la capa de services (events.service.js) y el acceso a datos queda en el repository y el dao. Al crear o editar un evento no se permite poner una fecha pasada, la capacidad tiene que ser mayor a cero y el precio no puede ser negativo. Para cancelar un evento nunca se borra fisicamente de la base de datos, sino que se cambia su estado a cancelled mediante PATCH /api/events/:id/status (o DELETE /api/events/:id que hace la misma baja logica). Ademas, una vez que un evento esta en estado cancelled o finished ya no se puede modificar ni volver a publicar.
+
+Las rutas de eventos quedan asi: POST /api/events para crear eventos (solo organizer o admin), GET /api/events para listar eventos (publico), GET /api/events/:id para ver el detalle de un evento (publico, devuelve 404 si no existe), PUT /api/events/:id para modificar un evento (solo el organizer dueño o un admin) y PATCH /api/events/:id/status para cambiar su estado (tambien solo el dueño o admin). Por ejemplo, para crear un evento valido se manda:
+
+```json
+{
+  "title": "Torneo Regional de Crossfit",
+  "description": "Competencia amateur por equipos en tres categorias",
+  "category": "crossfit",
+  "location": "Polideportivo Sur",
+  "date": "2026-12-20T15:00:00.000Z",
+  "capacity": 40,
+  "price": 3500
+}
+```
+
+El listado de GET /api/events ahora soporta filtros, paginacion y ordenamiento por query params. Se puede filtrar por status, category, location y rango de fechas con dateFrom y dateTo, elegir pagina y tamaño con page y limit, y ordenar con sort (por ejemplo sort=date o sort=-price). Un ejemplo de consulta seria GET /api/events?status=published&category=crossfit&page=1&limit=5&sort=date y la respuesta viene paginada con esta estructura:
+
+```json
+{
+  "status": "success",
+  "data": [],
+  "page": 1,
+  "limit": 5,
+  "total": 0,
+  "totalPages": 1
+}
+```

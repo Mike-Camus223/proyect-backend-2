@@ -9,8 +9,12 @@ class EventsRepository {
     return await this.dao.getAll(filter);
   }
 
-  async getEventById(id) {
-    return await this.dao.getById(id);
+  async getPaginatedEvents(filter = {}, options = {}) {
+    return await this.dao.getPaginated(filter, options);
+  }
+
+  async getEventById(id, options = {}) {
+    return await this.dao.getById(id, options);
   }
 
   async createEvent(eventData) {
@@ -19,10 +23,6 @@ class EventsRepository {
 
   async updateEvent(id, updateData) {
     return await this.dao.update(id, updateData);
-  }
-
-  async deleteEvent(id) {
-    return await this.dao.delete(id);
   }
 }
 

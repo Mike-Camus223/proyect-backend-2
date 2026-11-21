@@ -45,3 +45,4 @@ export const updateUserRole = async (req, res, next) => {
     return handleControllerError(error, res, next);
   }
 };
+

@@ -10,3 +10,4 @@ router.get('/:id', auth, authorize('admin'), getUserById);
 router.patch('/:id/role', auth, authorize('admin'), updateUserRole);
 
 export default router;
+

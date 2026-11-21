@@ -60,3 +60,4 @@ class UsersService {
 
 export const usersService = new UsersService(usersRepository);
 export default usersService;
+

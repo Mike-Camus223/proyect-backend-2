@@ -9,28 +9,28 @@ const eventSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      trim: true
-    },
-    sportType: {
-      type: String,
       required: true,
       trim: true
     },
     category: {
       type: String,
-      trim: true,
-      default: 'General'
-    },
-    location: {
-      type: String,
       required: true,
+      trim: true
+    },
+    sportType: {
+      type: String,
       trim: true
     },
     date: {
       type: Date,
       required: true
     },
-    maxParticipants: {
+    location: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    capacity: {
       type: Number,
       required: true,
       min: 1
@@ -42,7 +42,7 @@ const eventSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['published', 'cancelled'],
+      enum: ['draft', 'published', 'cancelled', 'finished'],
       default: 'published'
     },
     organizer: {

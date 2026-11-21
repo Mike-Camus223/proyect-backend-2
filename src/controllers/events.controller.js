@@ -12,10 +12,14 @@ const handleControllerError = (error, res, next) => {
 
 export const getEvents = async (req, res, next) => {
   try {
-    const events = await eventsService.getAllEvents();
+    const result = await eventsService.getAllEvents(req.query);
     return res.status(200).json({
       status: 'success',
-      payload: events
+      data: result.data,
+      page: result.page,
+      limit: result.limit,
+      total: result.total,
+      totalPages: result.totalPages
     });
   } catch (error) {
     return handleControllerError(error, res, next);
@@ -49,6 +53,18 @@ export const createEvent = async (req, res, next) => {
 export const updateEvent = async (req, res, next) => {
   try {
     const updated = await eventsService.updateEvent(req.params.id, req.body, req.user);
+    return res.status(200).json({
+      status: 'success',
+      payload: updated
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+};
+
+export const updateEventStatus = async (req, res, next) => {
+  try {
+    const updated = await eventsService.updateEventStatus(req.params.id, req.body.status, req.user);
     return res.status(200).json({
       status: 'success',
       payload: updated

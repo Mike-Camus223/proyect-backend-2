@@ -5,8 +5,26 @@ class EventsDAO {
     return await EventModel.find(filter).lean();
   }
 
-  async getById(id) {
-    return await EventModel.findById(id).lean();
+  async getPaginated(filter = {}, { skip = 0, limit = 10, sort = { date: 1 } } = {}) {
+    const [docs, total] = await Promise.all([
+      EventModel.find(filter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .populate('organizer', 'first_name last_name email')
+        .lean(),
+      EventModel.countDocuments(filter)
+    ]);
+
+    return { docs, total };
+  }
+
+  async getById(id, { populateOrganizer = false } = {}) {
+    const query = EventModel.findById(id);
+    if (populateOrganizer) {
+      query.populate('organizer', 'first_name last_name email');
+    }
+    return await query.lean();
   }
 
   async create(eventData) {
@@ -18,10 +36,6 @@ class EventsDAO {
       new: true,
       runValidators: true
     }).lean();
-  }
-
-  async delete(id) {
-    return await EventModel.findByIdAndDelete(id).lean();
   }
 }
 

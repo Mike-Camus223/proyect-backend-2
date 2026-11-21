@@ -4,6 +4,7 @@ import {
   getEventById,
   createEvent,
   updateEvent,
+  updateEventStatus,
   cancelEvent
 } from '../controllers/events.controller.js';
 import { auth } from '../middlewares/auth.middleware.js';
@@ -16,6 +17,7 @@ router.get('/:id', getEventById);
 
 router.post('/', auth, authorize('organizer', 'admin'), createEvent);
 router.put('/:id', auth, authorize('organizer', 'admin'), updateEvent);
+router.patch('/:id/status', auth, authorize('organizer', 'admin'), updateEventStatus);
 router.patch('/:id/cancel', auth, authorize('organizer', 'admin'), cancelEvent);
 router.delete('/:id', auth, authorize('organizer', 'admin'), cancelEvent);
 
