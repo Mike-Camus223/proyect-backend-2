@@ -12,14 +12,114 @@ Para correrlo hay que clonar el repo y hacer npm install para bajar las dependen
 
 Ahora paso a explicar las rutas que tiene la api.
 
-La primera es GET /api/health que es solo para chequear que el servidor este vivo, no recibe nada y responde { "status": "ok", "message": "Servidor activo" }. Tambien esta GET /api/events que devuelve el listado de eventos, por ahora viene vacio porque esa parte todavia no esta terminada.
+La primera es GET /api/health que es solo para chequear que el servidor este vivo, no recibe nada y responde asi:
 
-Para registrarse se usa POST /api/sessions/register. Hay que mandar en el body el nombre, apellido, email y contraseña, por ejemplo { "first_name": "Ana", "last_name": "Gomez", "email": "ana@mail.com", "password": "Secreta123" }. La ruta revisa que vengan todos los campos, que el email tenga formato valido y que la contraseña tenga minimo 6 caracteres. El email se pasa a minusculas y se le sacan los espacios antes de guardarlo, asi no se repiten usuarios por escribirlo distinto. Si todo esta bien responde con 201 y los datos del usuario pero sin la contraseña, algo asi como { "status": "success", "payload": { "id": "665f2a...", "first_name": "Ana", "last_name": "Gomez", "email": "ana@mail.com", "role": "user" } }. Si el email ya existe responde 409 con { "status": "error", "message": "El email ya está registrado" } y si falta algun campo devuelve 400.
+```json
+{
+  "status": "ok",
+  "message": "Servidor activo"
+}
+```
 
-Para loguearse se usa POST /api/sessions/login mandando el email y la contraseña, por ejemplo { "email": "ana@mail.com", "password": "Secreta123" }. Ahi se busca el usuario por email y se compara la contraseña con la que esta hasheada usando bcrypt. Si esta todo bien se genera un jwt que lleva solo el id, el email y el rol del usuario (nada de contraseña) y se guarda en una cookie que se llama currentUser. La cookie es httpOnly asi no se puede leer desde javascript en el navegador, tiene sameSite lax, dura una hora y en produccion se marca como secure. La respuesta en ese caso es 200 con { "status": "success", "message": "Login correcto" }. Si el email no existe o la contraseña esta mal responde siempre lo mismo, un 401 con { "status": "error", "message": "Credenciales inválidas" }, a proposito no se dice cual de las dos cosas fallo.
+Tambien esta GET /api/events que devuelve el listado de eventos, por ahora viene vacio porque esa parte todavia no esta terminada.
 
-Para ver quien esta logueado esta GET /api/sessions/current. Esta ruta esta protegida con el middleware de auth, que lo que hace es leer la cookie currentUser, verificar el token y si es valido guarda los datos en req.user. Si mandas la peticion con la cookie te devuelve 200 con { "status": "success", "payload": { "id": "665f2a...", "email": "ana@mail.com", "role": "user" } }. Si no hay cookie, o el token esta vencido o lo modificaron, responde 401 con { "status": "error", "message": "No autenticado" }.
+Para registrarse se usa POST /api/sessions/register. Hay que mandar en el body el nombre, apellido, email y contraseña, por ejemplo:
 
-Y por ultimo para cerrar sesion esta POST /api/sessions/logout, que no necesita body, borra la cookie currentUser y responde 200 con { "status": "success", "message": "Sesión cerrada" }. Despues de esto si volves a pegarle a current te va a dar 401 porque ya no tenes la cookie.
+```json
+{
+  "first_name": "Pepito",
+  "last_name": "Perez",
+  "email": "pepito@mail.com",
+  "password": "Secreta123"
+}
+```
+
+La ruta revisa que vengan todos los campos, que el email tenga formato valido y que la contraseña tenga minimo 6 caracteres. El email se pasa a minusculas y se le sacan los espacios antes de guardarlo, asi no se repiten usuarios por escribirlo distinto. Si todo esta bien responde con 201 y los datos del usuario pero sin la contraseña:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "id": "6b01df6d7c90c6fa0e85b023",
+    "first_name": "Pepito",
+    "last_name": "Perez",
+    "email": "pepito@mail.com",
+    "role": "user"
+  }
+}
+```
+
+Si el email ya existe responde 409 con:
+
+```json
+{
+  "status": "error",
+  "message": "El email ya está registrado"
+}
+```
+
+Y si falta algun campo o el formato esta mal devuelve 400.
+
+Para loguearse se usa POST /api/sessions/login mandando el email y la contraseña, por ejemplo:
+
+```json
+{
+  "email": "pepito@mail.com",
+  "password": "Secreta123"
+}
+```
+
+Ahi se busca el usuario por email y se compara la contraseña con la que esta hasheada usando bcrypt. Si esta todo bien se genera un jwt que lleva solo el id, el email y el rol del usuario (nada de contraseña) y se guarda en una cookie que se llama currentUser. La cookie es httpOnly asi no se puede leer desde javascript en el navegador, tiene sameSite lax, dura una hora y en produccion se marca como secure. La respuesta en ese caso es 200:
+
+```json
+{
+  "status": "success",
+  "message": "Login correcto"
+}
+```
+
+Si el email no existe o la contraseña esta mal responde siempre lo mismo, un 401:
+
+```json
+{
+  "status": "error",
+  "message": "Credenciales inválidas"
+}
+```
+
+A proposito no se aclara cual de las dos cosas fallo.
+
+Para ver quien esta logueado esta GET /api/sessions/current. Esta ruta esta protegida con el middleware de auth, que lo que hace es leer la cookie currentUser, verificar el token y si es valido guarda los datos en req.user. Si mandas la peticion con la cookie te devuelve 200:
+
+```json
+{
+  "status": "success",
+  "payload": {
+    "id": "6b01df6d7c90c6fa0e85b023",
+    "email": "pepito@mail.com",
+    "role": "user"
+  }
+}
+```
+
+Si no hay cookie, o el token esta vencido o lo modificaron, responde 401:
+
+```json
+{
+  "status": "error",
+  "message": "No autenticado"
+}
+```
+
+Y por ultimo para cerrar sesion esta POST /api/sessions/logout, que no necesita body, borra la cookie currentUser y responde 200:
+
+```json
+{
+  "status": "success",
+  "message": "Sesión cerrada"
+}
+```
+
+Despues de esto si volves a pegarle a current te va a dar 401 porque ya no tenes la cookie.
 
 Lo probe con Postman haciendo el recorrido completo de registrarme, loguearme, entrar a current, hacer logout y volver a current para ver que me tire 401. Tambien probe loguearme con un mail que no existe, con la contraseña mal, entrar a current sin cookie y con un token cambiado a mano, y en todos los casos respondio lo que tenia que responder.
