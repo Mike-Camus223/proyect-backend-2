@@ -1,17 +1,12 @@
 import app from './app.js';
-import mongoose from 'mongoose';
+import { connectDB } from './config/db.js';
 import { config } from './config/env.config.js';
 
 const PORT = config.port;
 
-mongoose.connect(config.mongoUrl)
-  .then(() => {
-    console.log('Conectado a MongoDB');
-  })
-  .catch((err) => {
-    console.log('Error conectando a MongoDB:', err.message);
+// Conectar a la base de datos e inicializar el servidor Express
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Servidor escuchando en el puerto ${PORT} (modo: ${config.nodeEnv})`);
   });
-
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
